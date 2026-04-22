@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>福满家订单系统</title>
+
+<style>
+body{font-family:Arial;background:#f5f5f5;padding:20px;}
+.container{max-width:700px;margin:auto;background:#fff;padding:20px;border-radius:10px;}
+h2{text-align:center;}
+input,select{width:100%;padding:10px;margin:5px 0;}
+button{width:100%;padding:12px;background:#28a745;color:white;border:none;}
+.loading{display:none;text-align:center;color:red;}
+</style>
+</head>
+
+<body>
+<div class="container">
+<h2>福满家订单系统</h2>
+
+<input id="name" placeholder="姓名（必填）">
+<input id="phone" placeholder="电话（必填）">
+<input id="address" placeholder="地址（必填）">
+
+<select id="delivery">
+<option value="自取">自取</option>
+<option value="邮寄">邮寄</option>
+</select>
+
+<p>📍 自取地址：<br>
+9, Jalan Perdagangan1, Taman Universiti,<br>
+81300 Skudai, Johor
+</p >
+
+<h3>商品</h3>
+
+<label>猪肉碎肉干500G RM55</label>
+<input type="number" id="p1" value="0">
+
+<label>猪肉碎肉干1KG RM108</label>
+<input type="number" id="p2" value="0">
+
+<label>鸡肉碎肉干500G RM55</label>
+<input type="number" id="p3" value="0">
+
+<label>鸡肉碎肉干1KG RM108</label>
+<input type="number" id="p4" value="0">
+
+<label>切片肉干500G RM70</label>
+<input type="number" id="p5" value="0">
+
+<label>切片肉干1KG RM138</label>
+<input type="number" id="p6" value="0">
+
+<label>帝王肉干500G RM95</label>
+<input type="number" id="p7" value="0">
+
+<label>帝王肉干1KG RM188</label>
+<input type="number" id="p8" value="0">
+
+<label>肉松200G RM30</label>
+<input type="number" id="p9" value="0">
+
+<label>虾米卷220G RM22</label>
+<input type="number" id="p10" value="0">
+
+<label>鸡蛋饼340G RM30</label>
+<input type="number" id="p11" value="0">
+
+<label>咸蛋鱼皮100G RM23</label>
+<input type="number" id="p12" value="0">
+
+<label>麻辣鱼皮100G RM23</label>
+<input type="number" id="p13" value="0">
+
+<h3>付款截图（必须）</h3>
+<input type="file" id="image">
+
+<textarea id="note" placeholder="备注（可不填）"></textarea>
+
+<h3>价格</h3>
+<p>商品金额：RM <span id="itemTotal">0</span></p >
+<p>运费：RM <span id="shipping">0</span></p >
+<p>总金额：RM <span id="total">0</span></p >
+
+<button onclick="submitOrder()">提交订单</button>
+
+<p class="loading" id="loading">提交中，请勿重复点击...</p >
+<p id="result"></p >
+
+</div>
+
+<script>
+
+const prices = [55,108,55,108,70,138,95,188,30,22,30,23,23];
+const weights = [0.5,1,0.5,1,0.5,1,0.5,1,0.2,0.22,0.34,0.1,0.1];
+
+function calc(){
+  let total=0, weight=0;
+
+  for(let i=1;i<=13;i++){
+    let qty = document.getElementById("p"+i).value;
+    total += qty * prices[i-1];
+    weight += qty * weights[i-1];
+  }
+
+  let shipping=0;
+  if(document.getElementById("delivery").value=="邮寄"){
+    if(weight>0){
+      shipping = 10;
+      if(weight>1){
+        shipping += Math.ceil((weight-1)/0.5)*3;
+      }
+    }
+  }
+
+  document.getElementById("itemTotal").innerText = total;
+  document.getElementById("shipping").innerText = shipping;
+  document.getElementById("total").innerText = total+shipping;
+}
+
+setInterval(calc,500);
+
+function submitOrder(){
+
+  const name = document.getElementById("name").value;
+  const phone = document.getElementById("phone").value;
+  const address = document.getElementById("address").value;
+  const file = document.getElementById("image").files[0];
+
+  if(!name || !phone || !address || !file){
+    alert("请填写完整资料 + 上传付款截图");
+    return;
+  }
+
+  if(file.size > 2*1024*1024){
+    alert("图片不能超过2MB");
+    return;
+  }
+
+  document.getElementById("loading").style.display="block";
+
+  const reader = new FileReader();
+  reader.onload = function(){
+
+    let items=[];
+    for(let i=1;i<=13;i++){
+      let qty = document.getElementById("p"+i).value;
+      if(qty>0){
+        items.push("商品"+i+" x"+qty);
+      }
+    }
+
+    fetch("https://script.google.com/macros/s/AKfycbwTUFNCDiSXGJQi_CUR9FswLn6-aJIpJWbcKxzENgT0IDiVHp4AuLoqZCe5EnfL4srJfw/exec",{
+      method:"POST",
+      body: JSON.stringify({
+        name,phone,address,
+        delivery:document.getElementById("delivery").value,
+        items:items.join(", "),
+        itemTotal:document.getElementById("itemTotal").innerText,
+        shipping:document.getElementById("shipping").innerText,
+        total:document.getElementById("total").innerText,
+        note:document.getElementById("note").value,
+        image:reader.result
+      })
+    })
+    .then(res=>res.json())
+    .then(res=>{
+      document.getElementById("loading").style.display="none";
+
+      if(res.status=="success"){
+        document.getElementById("result").innerHTML =
+        "✅ 下单成功！订单号："+res.orderNumber;
+      }else{
+        alert("提交失败");
+      }
+    });
+
+  };
+
+  reader.readAsDataURL(file);
+}
+</script>
+
+</body>
+</html>
