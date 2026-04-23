@@ -1,187 +1,193 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>福满家订单系统</title>
-
+<title>福满家 订单系统</title>
 <style>
-body{font-family:Arial;background:#f5f5f5;padding:20px;}
-.container{max-width:700px;margin:auto;background:#fff;padding:20px;border-radius:10px;}
-h2{text-align:center;}
-input,select{width:100%;padding:10px;margin:5px 0;}
-button{width:100%;padding:12px;background:#28a745;color:white;border:none;}
-.loading{display:none;text-align:center;color:red;}
+body { font-family: Arial; max-width:600px; margin:auto; padding:20px;}
+h2 { text-align:center;}
+input, select { width:100%; padding:10px; margin:5px 0; box-sizing:border-box;}
+.product { border-bottom:1px solid #ddd; padding:10px 0;}
+button { width:100%; padding:12px; background:black; color:white; border:none; font-size:16px; cursor:pointer;}
+button:disabled { background:gray; cursor:not-allowed;}
+.total { font-size:18px; margin-top:10px;}
 </style>
 </head>
-
 <body>
-<div class="container">
-<h2>福满家订单系统</h2>
 
-<input id="name" placeholder="姓名（必填）">
-<input id="phone" placeholder="电话（必填）">
-<input id="address" placeholder="地址（必填）">
+<h2>福满家 订单系统</h2>
 
-<select id="delivery">
-<option value="自取">自取</option>
-<option value="邮寄">邮寄</option>
+<h3>客户资料</h3>
+<input id="name" placeholder="姓名 *">
+<input id="phone" placeholder="联络号码 *">
+<input id="address" placeholder="地址 *">
+
+<h3>配送方式</h3>
+<select id="delivery" onchange="calc()">
+  <option value="自取">自取</option>
+  <option value="邮寄">邮寄</option>
 </select>
 
-<p>📍 自取地址：<br>
-9, Jalan Perdagangan1, Taman Universiti,<br>
-81300 Skudai, Johor
-</p >
+<p><b>自取地址：</b>9, Jalan Perdagangan 1, Taman Universiti, 81300, Skudai, Johor.</p >
 
 <h3>商品</h3>
+<div id="products"></div>
 
-<label>猪肉碎肉干500G RM55</label>
-<input type="number" id="p1" value="0">
+<h3>备注</h3>
+<input id="remark" placeholder="备注（可选）">
 
-<label>猪肉碎肉干1KG RM108</label>
-<input type="number" id="p2" value="0">
+<h3>上传付款截图 *</h3>
+<input type="file" id="payment" accept="image/*">
 
-<label>鸡肉碎肉干500G RM55</label>
-<input type="number" id="p3" value="0">
-
-<label>鸡肉碎肉干1KG RM108</label>
-<input type="number" id="p4" value="0">
-
-<label>切片肉干500G RM70</label>
-<input type="number" id="p5" value="0">
-
-<label>切片肉干1KG RM138</label>
-<input type="number" id="p6" value="0">
-
-<label>帝王肉干500G RM95</label>
-<input type="number" id="p7" value="0">
-
-<label>帝王肉干1KG RM188</label>
-<input type="number" id="p8" value="0">
-
-<label>肉松200G RM30</label>
-<input type="number" id="p9" value="0">
-
-<label>虾米卷220G RM22</label>
-<input type="number" id="p10" value="0">
-
-<label>鸡蛋饼340G RM30</label>
-<input type="number" id="p11" value="0">
-
-<label>咸蛋鱼皮100G RM23</label>
-<input type="number" id="p12" value="0">
-
-<label>麻辣鱼皮100G RM23</label>
-<input type="number" id="p13" value="0">
-
-<h3>付款截图（必须）</h3>
-<input type="file" id="image">
-
-<textarea id="note" placeholder="备注（可不填）"></textarea>
-
-<h3>价格</h3>
-<p>商品金额：RM <span id="itemTotal">0</span></p >
-<p>运费：RM <span id="shipping">0</span></p >
-<p>总金额：RM <span id="total">0</span></p >
-
-<button onclick="submitOrder()">提交订单</button>
-
-<p class="loading" id="loading">提交中，请勿重复点击...</p >
-<p id="result"></p >
-
+<div class="total">
+商品：RM <span id="productTotal">0</span><br>
+运费：RM <span id="shipping">0</span><br>
+<b>总计：RM <span id="total">0</span></b>
 </div>
 
+<button id="submitBtn">提交订单</button>
+
 <script>
+// 请替换成你最新部署的 Apps Script URL
+const API_URL = "https://script.google.com/macros/s/AKfycbwI4fJzJP_n1rc0trBOv83q4NptCVPlS94UOrgWqczAcOKhq4fzvAGe7sLxGDb-CBLFNg/exec";
 
-const prices = [55,108,55,108,70,138,95,188,30,22,30,23,23];
-const weights = [0.5,1,0.5,1,0.5,1,0.5,1,0.2,0.22,0.34,0.1,0.1];
+// 商品数据
+const products = [
+  {name:"猪肉碎肉干 500G", price:55, weight:0.5},
+  {name:"猪肉碎肉干 1KG", price:108, weight:1},
+  {name:"鸡肉碎肉干 500G", price:55, weight:0.5},
+  {name:"鸡肉碎肉干 1KG", price:108, weight:1},
+  {name:"切片肉干 500G", price:70, weight:0.5},
+  {name:"切片肉干 1KG", price:138, weight:1},
+  {name:"帝王肉干 500G", price:95, weight:0.5},
+  {name:"帝王肉干 1KG", price:188, weight:1},
+  {name:"精品肉松 200G", price:30, weight:0.2},
+  {name:"虾米卷 220G", price:22, weight:0.22},
+  {name:"鸡蛋饼 340G", price:30, weight:0.34},
+  {name:"鱼皮 100G", price:23, weight:0.1}
+];
 
-function calc(){
-  let total=0, weight=0;
-
-  for(let i=1;i<=13;i++){
-    let qty = document.getElementById("p"+i).value;
-    total += qty * prices[i-1];
-    weight += qty * weights[i-1];
-  }
-
-  let shipping=0;
-  if(document.getElementById("delivery").value=="邮寄"){
-    if(weight>0){
-      shipping = 10;
-      if(weight>1){
-        shipping += Math.ceil((weight-1)/0.5)*3;
-      }
-    }
-  }
-
-  document.getElementById("itemTotal").innerText = total;
-  document.getElementById("shipping").innerText = shipping;
-  document.getElementById("total").innerText = total+shipping;
+// 渲染商品
+function renderProducts() {
+  let html = "";
+  products.forEach((p, i) => {
+    html += `<div class="product">
+      ${p.name} RM${p.price}
+      <input type="number" id="q${i}" value="0" min="0" onchange="calc()">
+    </div>`;
+  });
+  document.getElementById("products").innerHTML = html;
 }
 
-setInterval(calc,500);
+// 计算价格
+function calc() {
+  let total = 0;
+  let weight = 0;
+  
+  products.forEach((p, i) => {
+    let q = parseInt(document.getElementById("q"+i).value) || 0;
+    total += q * p.price;
+    weight += q * p.weight;
+  });
+  
+  let ship = 0;
+  let delivery = document.getElementById("delivery").value;
+  if (delivery === "邮寄") {
+    if (weight <= 1) ship = 10;
+    else ship = 10 + Math.ceil((weight - 1) / 0.5) * 3;
+  }
+  
+  document.getElementById("productTotal").innerText = total;
+  document.getElementById("shipping").innerText = ship;
+  document.getElementById("total").innerText = total + ship;
+}
 
-function submitOrder(){
-
-  const name = document.getElementById("name").value;
-  const phone = document.getElementById("phone").value;
-  const address = document.getElementById("address").value;
-  const file = document.getElementById("image").files[0];
-
-  if(!name || !phone || !address || !file){
-    alert("请填写完整资料 + 上传付款截图");
+// 提交订单
+async function submitOrder() {
+  let name = document.getElementById("name").value;
+  let phone = document.getElementById("phone").value;
+  let address = document.getElementById("address").value;
+  
+  if (!name || !phone || !address) {
+    alert("请填写完整资料");
     return;
   }
-
-  if(file.size > 2*1024*1024){
+  
+  let file = document.getElementById("payment").files[0];
+  if (!file) {
+    alert("必须上传付款截图");
+    return;
+  }
+  if (file.size > 2 * 1024 * 1024) {
     alert("图片不能超过2MB");
     return;
   }
-
-  document.getElementById("loading").style.display="block";
-
-  const reader = new FileReader();
-  reader.onload = function(){
-
-    let items=[];
-    for(let i=1;i<=13;i++){
-      let qty = document.getElementById("p"+i).value;
-      if(qty>0){
-        items.push("商品"+i+" x"+qty);
+  
+  let btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  btn.innerText = "提交中...";
+  
+  let reader = new FileReader();
+  reader.onload = async function() {
+    let orderProducts = products.map((p, i) => ({
+      name: p.name,
+      qty: parseInt(document.getElementById("q"+i).value) || 0
+    }));
+    
+    try {
+      let res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          name: name,
+          phone: phone,
+          address: address,
+          delivery: document.getElementById("delivery").value,
+          remark: document.getElementById("remark").value,
+          products: orderProducts,
+          productTotal: document.getElementById("productTotal").innerText,
+          shippingFee: document.getElementById("shipping").innerText,
+          total: document.getElementById("total").innerText,
+          paymentImage: reader.result
+        })
+      });
+      
+      let data = await res.json();
+      
+      if (data.status === "success") {
+        document.body.innerHTML = `<div style="text-align:center;padding:50px;">
+          <h2>🎉 下单成功</h2>
+          <p>订单编号：<b>${data.orderNumber}</b></p >
+          <p>我们会尽快处理您的订单</p >
+          <p>请保留付款截图以备查询</p >
+        </div>`;
+      } else {
+        alert("提交失败：" + (data.message || "未知错误"));
+        btn.disabled = false;
+        btn.innerText = "提交订单";
       }
+    } catch (err) {
+      alert("网络错误：" + err.message);
+      btn.disabled = false;
+      btn.innerText = "提交订单";
     }
-
-    fetch("https://script.google.com/macros/s/AKfycbwTUFNCDiSXGJQi_CUR9FswLn6-aJIpJWbcKxzENgT0IDiVHp4AuLoqZCe5EnfL4srJfw/exec",{
-      method:"POST",
-      body: JSON.stringify({
-        name,phone,address,
-        delivery:document.getElementById("delivery").value,
-        items:items.join(", "),
-        itemTotal:document.getElementById("itemTotal").innerText,
-        shipping:document.getElementById("shipping").innerText,
-        total:document.getElementById("total").innerText,
-        note:document.getElementById("note").value,
-        image:reader.result
-      })
-    })
-    .then(res=>res.json())
-    .then(res=>{
-      document.getElementById("loading").style.display="none";
-
-      if(res.status=="success"){
-        document.getElementById("result").innerHTML =
-        "✅ 下单成功！订单号："+res.orderNumber;
-      }else{
-        alert("提交失败");
-      }
-    });
-
   };
-
+  
+  reader.onerror = function() {
+    alert("读取图片失败");
+    btn.disabled = false;
+    btn.innerText = "提交订单";
+  };
+  
   reader.readAsDataURL(file);
 }
-</script>
 
+// 绑定按钮事件
+document.getElementById("submitBtn").onclick = submitOrder;
+
+// 初始化
+renderProducts();
+calc();
+</script>
 </body>
 </html>
