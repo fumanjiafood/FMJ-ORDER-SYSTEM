@@ -5,102 +5,163 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>福满家 订单系统</title>
 <style>
-body { font-family: Arial; max-width:600px; margin:auto; padding:20px;}
-h2 { text-align:center;}
-input, select { width:100%; padding:10px; margin:5px 0; box-sizing:border-box;}
-.product { border-bottom:1px solid #ddd; padding:10px 0;}
-button { width:100%; padding:12px; background:black; color:white; border:none; font-size:16px; cursor:pointer;}
+body { font-family: Arial; max-width:650px; margin:auto; padding:20px; background:#f9f9f9;}
+h2 { text-align:center; color:#8B0000;}
+h3 { background:#eee; padding:8px; border-left:4px solid #8B0000; margin-top:20px;}
+input, select { width:100%; padding:10px; margin:5px 0; box-sizing:border-box; border:1px solid #ddd; border-radius:5px;}
+.product { border-bottom:1px solid #eee; padding:12px 5px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;}
+.product-name { flex:2; font-weight:bold;}
+.product-price { flex:1; color:#666; font-size:14px;}
+.product-qty { flex:1; min-width:100px;}
+.product-qty input { width:80px; padding:8px; text-align:center;}
+button { width:100%; padding:12px; background:#8B0000; color:white; border:none; font-size:18px; cursor:pointer; border-radius:5px; margin-top:10px;}
 button:disabled { background:gray; cursor:not-allowed;}
-.total { font-size:18px; margin-top:10px;}
+.total { background:#fff3e0; padding:15px; border-radius:8px; margin:15px 0;}
+.total-item { display:flex; justify-content:space-between; margin:8px 0;}
+.total-item b { font-size:20px; color:#8B0000;}
+.qty-group { display:flex; align-items:center; gap:8px; background:#f0f0f0; padding:5px 10px; border-radius:8px; }
+.qty-group button { width:30px; background:#ddd; color:#333; margin:0; padding:5px; font-size:16px; }
+.qty-group input { width:60px; text-align:center; margin:0; padding:5px; }
 </style>
 </head>
 <body>
 
 <h2>福满家 订单系统</h2>
 
-<h3>客户资料</h3>
+<h3>📋 客户资料</h3>
 <input id="name" placeholder="姓名 *">
 <input id="phone" placeholder="联络号码 *">
 <input id="address" placeholder="地址 *">
 
-<h3>配送方式</h3>
+<h3>🚚 配送方式</h3>
 <select id="delivery" onchange="calc()">
   <option value="自取">自取</option>
   <option value="邮寄">邮寄</option>
 </select>
-
 <p><b>自取地址：</b>9, Jalan Perdagangan 1, Taman Universiti, 81300, Skudai, Johor.</p >
 
-<h3>商品</h3>
-<div id="products"></div>
+<!-- 熟肉商品 -->
+<h3>🍖 商品列表</h3>
+<div id="cookedProducts"></div>
 
-<h3>备注</h3>
+<h3>📝 备注</h3>
 <input id="remark" placeholder="备注（可选）">
 
-<h3>上传付款截图 *</h3>
+<h3>🖼️ 上传付款截图 *</h3>
 <input type="file" id="payment" accept="image/*">
 
 <div class="total">
-商品：RM <span id="productTotal">0</span><br>
-运费：RM <span id="shipping">0</span><br>
-<b>总计：RM <span id="total">0</span></b>
+    <div class="total-item">商品总计：RM <span id="productTotal">0</span></div>
+    <div class="total-item">运费：RM <span id="shipping">0</span></div>
+    <div class="total-item"><b>总计：RM <span id="total">0</span></b></div>
 </div>
 
 <button id="submitBtn">提交订单</button>
 
 <script>
-// 请替换成你最新部署的 Apps Script URL
-const API_URL = "https://script.google.com/macros/s/AKfycbxHJUt4E7FpaGMGhvBICY91GQa53AqVkF_cNDSj-PR5fNYIEWre2pWQhVdN1t2LnCEt4A/exec";
+// ⚠️ 请替换成你最新的 Apps Script URL
+const API_URL = "https://script.google.com/macros/s/AKfycbx2-ff5oU81DWbbH_QWKlNCklpMaCZe8iDu1URqNB0aM-n-rV8RJUonGmdaCiwb7Ts3/exec";
 
-// 商品数据
-const products = [
-  {name:"猪肉碎肉干 500G", price:55, weight:0.5},
-  {name:"猪肉碎肉干 1KG", price:108, weight:1},
-  {name:"鸡肉碎肉干 500G", price:55, weight:0.5},
-  {name:"鸡肉碎肉干 1KG", price:108, weight:1},
-  {name:"切片肉干 500G", price:70, weight:0.5},
-  {name:"切片肉干 1KG", price:138, weight:1},
-  {name:"帝王肉干 500G", price:95, weight:0.5},
-  {name:"帝王肉干 1KG", price:188, weight:1},
-  {name:"精品肉松 200G", price:30, weight:0.2},
-  {name:"虾米卷 220G", price:22, weight:0.22},
-  {name:"鸡蛋饼 340G", price:30, weight:0.34},
-  {name:"鱼皮 100G", price:23, weight:0.1}
+// ========== 商品数据 ==========
+const cookedProducts = [
+  { name: "猪肉碎肉干 Pork Meat (Minced Meat)", price500: 55, price1kg: 108 },
+  { name: "鸡肉碎肉干 Chicken Meat (Minced Meat)", price500: 55, price1kg: 108 },
+  { name: "切片肉干 BBQ Sliced Pork Meat", price500: 70, price1kg: 138 },
+  { name: "帝王肉干 Signature BBQ Bacon", price500: 95, price1kg: 188 },
+  { name: "精品肉松 Pork Floss", price: 30, unit: "200G/Tin", isFixed: true },
+  { name: "黄金辣味虾米卷 Spicy Spring Roll", price: 22, unit: "220G/Tin", isFixed: true },
+  { name: "炭烧鸡蛋饼 Traditional Kuih Kapit", price: 30, unit: "340G/Tin", isFixed: true },
+  { name: "咸蛋鱼皮 Salted Egg Fish Skin", price: 23, unit: "100G/Pkt", isFixed: true },
+  { name: "麻辣鱼皮 Mala Fish Skin", price: 23, unit: "100G/Pkt", isFixed: true }
 ];
 
-// 渲染商品
-function renderProducts() {
-  let html = "";
-  products.forEach((p, i) => {
-    html += `<div class="product">
-      ${p.name} RM${p.price}
-      <input type="number" id="q${i}" value="0" min="0" onchange="calc()">
-    </div>`;
-  });
-  document.getElementById("products").innerHTML = html;
+// 增加/减少数量的辅助函数
+function changeQty(elementId, delta) {
+  let input = document.getElementById(elementId);
+  if (input) {
+    let newVal = parseInt(input.value) || 0;
+    newVal += delta;
+    if (newVal < 0) newVal = 0;
+    input.value = newVal;
+    calc();
+  }
 }
 
-// 计算价格
+// 渲染熟肉商品
+function renderCookedProducts() {
+  let html = "";
+  cookedProducts.forEach((p, i) => {
+    if (p.isFixed) {
+      html += `<div class="product">
+          <span class="product-name">${p.name}</span>
+          <span class="product-price">RM${p.price} / ${p.unit}</span>
+          <span class="product-qty">
+            <input type="number" id="cooked_${i}" value="0" min="0" onchange="calc()" step="1" style="width:80px;">
+          </span>
+      </div>`;
+    } else {
+      html += `<div class="product" style="flex-direction:column; align-items:flex-start;">
+          <div style="width:100%; margin-bottom:8px;">
+            <span class="product-name">${p.name}</span>
+            <span class="product-price" style="float:right;">500G: RM${p.price500} | 1KG: RM${p.price1kg}</span>
+          </div>
+          <div style="display:flex; gap:20px; width:100%;">
+            <div class="qty-group">
+              <span style="font-weight:bold; min-width:45px;">500G</span>
+              <button type="button" onclick="changeQty('cooked_${i}_500', -1)">-</button>
+              <input type="number" id="cooked_${i}_500" value="0" min="0" onchange="calc()">
+              <button type="button" onclick="changeQty('cooked_${i}_500', 1)">+</button>
+            </div>
+            <div class="qty-group">
+              <span style="font-weight:bold; min-width:45px;">1KG</span>
+              <button type="button" onclick="changeQty('cooked_${i}_1kg', -1)">-</button>
+              <input type="number" id="cooked_${i}_1kg" value="0" min="0" onchange="calc()">
+              <button type="button" onclick="changeQty('cooked_${i}_1kg', 1)">+</button>
+            </div>
+          </div>
+      </div>`;
+    }
+  });
+  document.getElementById("cookedProducts").innerHTML = html;
+}
+
+// 计算总价和运费
 function calc() {
   let total = 0;
   let weight = 0;
   
-  products.forEach((p, i) => {
-    let q = parseInt(document.getElementById("q"+i).value) || 0;
-    total += q * p.price;
-    weight += q * p.weight;
+  // 熟肉计算
+  cookedProducts.forEach((p, i) => {
+    if (p.isFixed) {
+      let qty = parseInt(document.getElementById(`cooked_${i}`).value) || 0;
+      total += qty * p.price;
+      if (p.name.includes("肉松") || p.name.includes("Floss")) weight += qty * 0.2;
+      else if (p.name.includes("虾米卷") || p.name.includes("Spring Roll")) weight += qty * 0.22;
+      else if (p.name.includes("鸡蛋饼") || p.name.includes("Kuih Kapit")) weight += qty * 0.34;
+      else if (p.name.includes("鱼皮") || p.name.includes("Fish Skin")) weight += qty * 0.1;
+    } else {
+      let qty500 = parseInt(document.getElementById(`cooked_${i}_500`).value) || 0;
+      let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`).value) || 0;
+      total += qty500 * p.price500;
+      total += qty1kg * p.price1kg;
+      weight += qty500 * 0.5;
+      weight += qty1kg * 1;
+    }
   });
   
+  // 运费计算
   let ship = 0;
   let delivery = document.getElementById("delivery").value;
   if (delivery === "邮寄") {
     if (weight <= 1) ship = 10;
-    else ship = 10 + Math.ceil((weight - 1) / 0.5) * 3;
+    else if (weight <= 3) ship = 15;
+    else if (weight <= 5) ship = 20;
+    else ship = 20 + Math.ceil((weight - 5) / 1) * 5;
   }
   
-  document.getElementById("productTotal").innerText = total;
-  document.getElementById("shipping").innerText = ship;
-  document.getElementById("total").innerText = total + ship;
+  document.getElementById("productTotal").innerText = total.toFixed(2);
+  document.getElementById("shipping").innerText = ship.toFixed(2);
+  document.getElementById("total").innerText = (total + ship).toFixed(2);
 }
 
 // 提交订单
@@ -128,13 +189,23 @@ async function submitOrder() {
   btn.disabled = true;
   btn.innerText = "提交中...";
   
+  // 保存订单商品列表
+  let orderProducts = [];
+  
+  cookedProducts.forEach((p, i) => {
+    if (p.isFixed) {
+      let qty = parseInt(document.getElementById(`cooked_${i}`).value) || 0;
+      if (qty > 0) orderProducts.push({ name: `${p.name} (${p.unit})`, qty: qty, price: p.price });
+    } else {
+      let qty500 = parseInt(document.getElementById(`cooked_${i}_500`).value) || 0;
+      let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`).value) || 0;
+      if (qty500 > 0) orderProducts.push({ name: `${p.name} 500G`, qty: qty500, price: p.price500 });
+      if (qty1kg > 0) orderProducts.push({ name: `${p.name} 1KG`, qty: qty1kg, price: p.price1kg });
+    }
+  });
+  
   let reader = new FileReader();
   reader.onload = async function() {
-    let orderProducts = products.map((p, i) => ({
-      name: p.name,
-      qty: parseInt(document.getElementById("q"+i).value) || 0
-    }));
-    
     try {
       let res = await fetch(API_URL, {
         method: "POST",
@@ -148,7 +219,8 @@ async function submitOrder() {
           productTotal: document.getElementById("productTotal").innerText,
           shippingFee: document.getElementById("shipping").innerText,
           total: document.getElementById("total").innerText,
-          paymentImage: reader.result
+          paymentImage: reader.result,
+          freeGifts: ""
         })
       });
       
@@ -157,7 +229,7 @@ async function submitOrder() {
       if (data.status === "success") {
         document.body.innerHTML = `<div style="text-align:center;padding:50px;">
           <h2>🎉 下单成功</h2>
-          <p>订单编号：<b>${data.orderNumber}</b></p >
+          <p>订单编号：<b>${data.orderId}</b></p >
           <p>我们会尽快处理您的订单</p >
           <p>请保留付款截图以备查询</p >
         </div>`;
@@ -182,11 +254,9 @@ async function submitOrder() {
   reader.readAsDataURL(file);
 }
 
-// 绑定按钮事件
+// 绑定事件和初始化
 document.getElementById("submitBtn").onclick = submitOrder;
-
-// 初始化
-renderProducts();
+renderCookedProducts();
 calc();
 </script>
 </body>
