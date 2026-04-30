@@ -31,7 +31,6 @@
     margin-top: 0;
     margin-bottom: 8px;
     font-size: 1.8rem;
-    letter-spacing: 1px;
   }
   .sub {
     text-align: center;
@@ -58,7 +57,7 @@
     margin-bottom: 4px;
     font-size: 0.9rem;
   }
-  input, select, textarea {
+  input, select {
     width: 100%;
     padding: 12px 14px;
     border: 1px solid #ffd9b5;
@@ -78,7 +77,6 @@
     border-radius: 24px;
     padding: 12px 14px;
     border: 1px solid #ffe3cc;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
     margin-bottom: 16px;
   }
   .product-header {
@@ -108,14 +106,6 @@
     border-radius: 20px;
     color: #666;
     font-weight: normal;
-  }
-  .stock-badge.low {
-    background: #ffe0e0;
-    color: #c0392b;
-  }
-  .stock-badge.out {
-    background: #ffc8c8;
-    color: #a00;
   }
   .product-price {
     color: #b33c1c;
@@ -150,7 +140,7 @@
     background: #d4c4b2;
   }
   .qty-group input {
-    width: 65px;
+    width: 70px;
     text-align: center;
     margin: 0;
     padding: 6px;
@@ -212,11 +202,6 @@
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
-  hr {
-    border: none;
-    border-top: 1px solid #f0e0d0;
-    margin: 16px 0;
-  }
 </style>
 </head>
 <body>
@@ -231,7 +216,7 @@
   <input id="phone" placeholder="例如：0123456789" maxlength="11">
   <label>地址 <span class="required-star">*</span></label>
   <input id="address" placeholder="完整送货地址">
-  <div class="address-note">📌 邮寄需填写完整地址，自取则填“自取”</div>
+  <div class="address-note">📌 邮寄需填写完整地址，自取则填"自取"</div>
 
   <h3>🚚 配送方式</h3>
   <select id="delivery">
@@ -260,144 +245,150 @@
 </div>
 
 <script>
-// ======================== 请替换为你的 Apps Script URL ========================
-const API_URL = "https://script.google.com/macros/s/AKfycbwLTjiqX6iXVdxk_CPBnSXKdXBwoIz-beN1-TCvrczne6K15oXVDgRrEZO8Dk74W-WXBQ/exec";
+// ======================== 配置 ========================
+// ⚠️ 请替换成您部署后的 Apps Script URL
+const API_URL = "https://script.google.com/macros/s/AKfycby3YWu210NqfKkRxM3DVfp3OZZQYxD0IUno8FdBfF-Zy95f69A00ZjAIXH8bGKgb1MAUQ/exec";
 
 // ======================== 商品数据 ========================
 const cookedProducts = [
-  { name: "猪肉碎肉干 Pork Meat (Minced Meat)", price500: 55, price1kg: 108 },
-  { name: "鸡肉碎肉干 Chicken Meat (Minced Meat)", price500: 55, price1kg: 108 },
-  { name: "切片肉干 BBQ Sliced Pork Meat", price500: 70, price1kg: 138 },
-  { name: "帝王肉干 Signature BBQ Bacon", price500: 95, price1kg: 188 },
-  { name: "精品肉松 Pork Floss", price: 30, unit: "200G/Tin", isFixed: true },
-  { name: "黄金辣味虾米卷 Spicy Spring Roll", price: 22, unit: "220G/Tin", isFixed: true },
-  { name: "炭烧鸡蛋饼 Traditional Kuih Kapit", price: 30, unit: "340G/Tin", isFixed: true },
-  { name: "咸蛋鱼皮 Salted Egg Fish Skin", price: 23, unit: "100G/Pkt", isFixed: true },
-  { name: "麻辣鱼皮 Mala Fish Skin", price: 23, unit: "100G/Pkt", isFixed: true }
+  { name: "猪肉碎肉干 Pork Meat (Minced Meat)", price500: 55, price1kg: 108, productId500: "猪肉碎肉干 Pork Meat (Minced Meat)_500g", productId1kg: "猪肉碎肉干 Pork Meat (Minced Meat)_1kg" },
+  { name: "鸡肉碎肉干 Chicken Meat (Minced Meat)", price500: 55, price1kg: 108, productId500: "鸡肉碎肉干 Chicken Meat (Minced Meat)_500g", productId1kg: "鸡肉碎肉干 Chicken Meat (Minced Meat)_1kg" },
+  { name: "切片肉干 BBQ Sliced Pork Meat", price500: 70, price1kg: 138, productId500: "切片肉干 BBQ Sliced Pork Meat_500g", productId1kg: "切片肉干 BBQ Sliced Pork Meat_1kg" },
+  { name: "帝王肉干 Signature BBQ Bacon", price500: 95, price1kg: 188, productId500: "帝王肉干 Signature BBQ Bacon_500g", productId1kg: "帝王肉干 Signature BBQ Bacon_1kg" },
+  { name: "精品肉松 Pork Floss", price: 30, unit: "200G/Tin", isFixed: true, productId: "精品肉松 Pork Floss" },
+  { name: "黄金辣味虾米卷 Spicy Spring Roll", price: 22, unit: "220G/Tin", isFixed: true, productId: "黄金辣味虾米卷 Spicy Spring Roll" },
+  { name: "炭烧鸡蛋饼 Traditional Kuih Kapit", price: 30, unit: "340G/Tin", isFixed: true, productId: "炭烧鸡蛋饼 Traditional Kuih Kapit" },
+  { name: "咸蛋鱼皮 Salted Egg Fish Skin", price: 23, unit: "100G/Pkt", isFixed: true, productId: "咸蛋鱼皮 Salted Egg Fish Skin" },
+  { name: "麻辣鱼皮 Mala Fish Skin", price: 23, unit: "100G/Pkt", isFixed: true, productId: "麻辣鱼皮 Mala Fish Skin" }
 ];
 
-function isMeatProduct(productName) {
-  return productName.includes("肉干") || productName.includes("Meat") || productName.includes("Bacon");
+function isMeatProduct(product) {
+  return product.includes("肉干") || product.includes("Meat") || product.includes("Bacon");
 }
 
-// ---------- 库存 API ----------
-// 缓存库存数据，避免频繁请求（可选）
-let stockCache = new Map();
-
-async function fetchStock(productName, variant = "500G") {
+// ---------- 库存 API（适配您的后端格式）----------
+async function fetchStock(productId) {
   try {
-    let searchId = productName;
-    if (isMeatProduct(productName)) {
-      searchId = `${productName}_500g`;
-    }
-    const url = `${API_URL}?action=getStock&productId=${encodeURIComponent(searchId)}`;
+    const url = `${API_URL}?action=getStock&productId=${encodeURIComponent(productId)}`;
     const response = await fetch(url);
     const data = await response.json();
-    if (data.success) {
-      let rawStock = parseInt(data.stock) || 0;
-      if (variant === "1KG" && isMeatProduct(productName)) {
-        let available1kg = Math.floor(rawStock / 2);
-        return { available: available1kg > 0, stock: available1kg, rawStock: rawStock };
-      }
-      return { available: rawStock > 0, stock: rawStock, rawStock: rawStock };
-    }
-    return { available: true, stock: 999, rawStock: 999 };
+    return data;
   } catch (error) {
-    console.warn("库存查询失败", error);
-    return { available: true, stock: 0, error: true };
+    console.error("库存查询失败:", error);
+    return { success: false, error: error.toString() };
   }
 }
 
-async function deductStock(productName, quantity, variant) {
+async function deductStockApi(productId, quantity) {
   try {
-    let actualPkts = quantity;
-    if (isMeatProduct(productName) && variant === "1KG") {
-      actualPkts = quantity * 2;
-    }
-    let productId = productName;
-    if (isMeatProduct(productName)) {
-      productId = `${productName}_500g`;
-    }
     const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "deductStock", productId: productId, quantity: actualPkts })
+      body: JSON.stringify({
+        action: "deductStock",
+        productId: productId,
+        quantity: quantity
+      })
     });
     const data = await response.json();
-    return data.success;
+    return data;
   } catch (error) {
-    console.error("扣减库存失败", error);
-    return false;
+    console.error("扣减库存失败:", error);
+    return { success: false, error: error.toString() };
   }
 }
 
-async function showStockDialog(productName, variant) {
+// 显示库存弹窗
+async function showStockDialog(productName, productId, variant = "") {
   let displayName = variant ? `${productName} (${variant})` : productName;
+  
+  if (!productId) {
+    alert(`⚠️ ${displayName}\n无法查询库存，请联系客服。`);
+    return;
+  }
+  
   alert(`🔍 正在查询 ${displayName} 库存...`);
-  const info = await fetchStock(productName, variant);
-  if (info.error) {
-    alert(`⚠️ 无法获取 ${displayName} 库存，请联系客服。`);
-  } else if (info.available && info.stock > 0) {
-    alert(`✅ ${displayName}\n📦 剩余数量：${info.stock} 个\n可以放心下单！`);
+  const result = await fetchStock(productId);
+  
+  if (result.success) {
+    alert(`✅ ${displayName}\n📦 剩余库存：${result.stock} 个\n可以正常下单！`);
   } else {
-    alert(`❌ ${displayName}\n库存不足，请选择其他商品。`);
+    alert(`❌ ${displayName}\n${result.error || "库存查询失败，请稍后再试"}`);
   }
 }
 
-async function checkAllStockBeforeSubmit() {
-  let items = [];
-  cookedProducts.forEach((p, idx) => {
+// 下单前检查所有商品库存
+async function checkAllStock() {
+  let itemsToCheck = [];
+  
+  cookedProducts.forEach((p, i) => {
     if (p.isFixed) {
-      let qty = parseInt(document.getElementById(`cooked_${idx}`)?.value) || 0;
-      if (qty > 0) items.push({ name: p.name, variant: p.unit, qty: qty, isMeat: false });
+      let qty = parseInt(document.getElementById(`cooked_${i}`)?.value) || 0;
+      if (qty > 0 && p.productId) {
+        itemsToCheck.push({ productId: p.productId, name: p.name, variant: p.unit, qty: qty });
+      }
     } else {
-      let qty500 = parseInt(document.getElementById(`cooked_${idx}_500`)?.value) || 0;
-      let qty1kg = parseInt(document.getElementById(`cooked_${idx}_1kg`)?.value) || 0;
-      if (qty500 > 0) items.push({ name: p.name, variant: "500G", qty: qty500, isMeat: true });
-      if (qty1kg > 0) items.push({ name: p.name, variant: "1KG", qty: qty1kg, isMeat: true });
+      let qty500 = parseInt(document.getElementById(`cooked_${i}_500`)?.value) || 0;
+      let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`)?.value) || 0;
+      if (qty500 > 0 && p.productId500) {
+        itemsToCheck.push({ productId: p.productId500, name: p.name, variant: "500G", qty: qty500 });
+      }
+      if (qty1kg > 0 && p.productId1kg) {
+        itemsToCheck.push({ productId: p.productId1kg, name: p.name, variant: "1KG", qty: qty1kg });
+      }
     }
   });
-  if (items.length === 0) {
+  
+  if (itemsToCheck.length === 0) {
     alert("请至少选择一件商品");
     return false;
   }
-  for (let item of items) {
-    const stockInfo = await fetchStock(item.name, item.variant);
-    if (stockInfo.error) {
-      alert(`⚠️ 无法验证 ${item.name} ${item.variant} 库存，请重试`);
+  
+  for (let item of itemsToCheck) {
+    const stockResult = await fetchStock(item.productId);
+    if (!stockResult.success) {
+      alert(`⚠️ 无法验证 ${item.name} ${item.variant} 的库存：${stockResult.error}`);
       return false;
     }
-    let required = item.qty;
-    if (item.isMeat && item.variant === "1KG") required = item.qty * 2;
-    if (stockInfo.rawStock < required) {
-      let maxShow = stockInfo.rawStock;
-      if (item.isMeat && item.variant === "1KG") maxShow = Math.floor(stockInfo.rawStock / 2);
-      alert(`❌ ${item.name} ${item.variant}\n需求：${item.qty}，最大可售：${maxShow}\n库存不足！`);
+    if (stockResult.stock < item.qty) {
+      alert(`❌ ${item.name} ${item.variant}\n需求数量：${item.qty}\n剩余库存：${stockResult.stock}\n\n库存不足，无法下单！`);
       return false;
     }
   }
   return true;
 }
 
-async function deductAllSelected() {
-  let items = [];
-  cookedProducts.forEach((p, idx) => {
+// 提交订单后扣减所有商品库存
+async function deductAllStock() {
+  let itemsToDeduct = [];
+  
+  cookedProducts.forEach((p, i) => {
     if (p.isFixed) {
-      let qty = parseInt(document.getElementById(`cooked_${idx}`)?.value) || 0;
-      if (qty > 0) items.push({ name: p.name, variant: p.unit, qty: qty, isMeat: false });
+      let qty = parseInt(document.getElementById(`cooked_${i}`)?.value) || 0;
+      if (qty > 0 && p.productId) {
+        itemsToDeduct.push({ productId: p.productId, quantity: qty });
+      }
     } else {
-      let qty500 = parseInt(document.getElementById(`cooked_${idx}_500`)?.value) || 0;
-      let qty1kg = parseInt(document.getElementById(`cooked_${idx}_1kg`)?.value) || 0;
-      if (qty500 > 0) items.push({ name: p.name, variant: "500G", qty: qty500, isMeat: true });
-      if (qty1kg > 0) items.push({ name: p.name, variant: "1KG", qty: qty1kg, isMeat: true });
+      let qty500 = parseInt(document.getElementById(`cooked_${i}_500`)?.value) || 0;
+      let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`)?.value) || 0;
+      if (qty500 > 0 && p.productId500) {
+        itemsToDeduct.push({ productId: p.productId500, quantity: qty500 });
+      }
+      if (qty1kg > 0 && p.productId1kg) {
+        itemsToDeduct.push({ productId: p.productId1kg, quantity: qty1kg });
+      }
     }
   });
-  let allOk = true;
-  for (let item of items) {
-    let success = await deductStock(item.name, item.qty, item.variant);
-    if (!success) allOk = false;
+  
+  let allSuccess = true;
+  for (let item of itemsToDeduct) {
+    const result = await deductStockApi(item.productId, item.quantity);
+    if (!result.success) {
+      console.error(`扣减失败: ${item.productId}`, result.error);
+      allSuccess = false;
+    }
   }
-  return allOk;
+  return allSuccess;
 }
 
 // ---------- UI 渲染 & 计算 ----------
@@ -416,7 +407,7 @@ function renderCookedProducts() {
   cookedProducts.forEach((p, i) => {
     if (p.isFixed) {
       html += `<div class="product-card">
-        <div class="product-header" onclick="showStockDialog('${p.name.replace(/'/g, "\\'")}', '${p.unit.replace(/'/g, "\\'")}')">
+        <div class="product-header" onclick="showStockDialog('${p.name.replace(/'/g, "\\'")}', '${p.productId}', '${p.unit.replace(/'/g, "\\'")}')">
           <span class="product-name">📦 ${p.name} <span class="stock-badge">🔍 查库存</span></span>
           <span class="product-price">RM${p.price} / ${p.unit}</span>
         </div>
@@ -428,7 +419,7 @@ function renderCookedProducts() {
       </div>`;
     } else {
       html += `<div class="product-card">
-        <div class="product-header" onclick="showStockDialog('${p.name.replace(/'/g, "\\'")}', '肉干规格')">
+        <div class="product-header" onclick="showStockDialog('${p.name.replace(/'/g, "\\'")}', '${p.productId500}', '500G/1KG')">
           <span class="product-name">🥩 ${p.name} <span class="stock-badge">📊 查库存</span></span>
           <span class="product-price">500G RM${p.price500} | 1KG RM${p.price1kg}</span>
         </div>
@@ -483,14 +474,16 @@ function calc() {
   document.getElementById("total").innerText = (total + ship).toFixed(2);
 }
 
-// 提交订单 (整合库存检查与扣减)
+// 提交订单
 let submittingFlag = false;
 
 async function submitOrder() {
   if (submittingFlag) return;
+  
   const name = document.getElementById("name").value.trim();
   const phone = document.getElementById("phone").value.trim();
   const address = document.getElementById("address").value.trim();
+  
   if (!name || !phone || !address) {
     alert("请完整填写姓名、电话、地址");
     return;
@@ -500,6 +493,7 @@ async function submitOrder() {
     alert("请填写正确的手机号码 (9-11位数字)");
     return;
   }
+  
   const file = document.getElementById("payment").files[0];
   if (!file) {
     alert("请上传付款截图");
@@ -509,22 +503,22 @@ async function submitOrder() {
     alert("图片不能超过2MB");
     return;
   }
-
-  // 库存预检
-  const stockOk = await checkAllStockBeforeSubmit();
+  
+  // 检查库存
+  const stockOk = await checkAllStock();
   if (!stockOk) return;
-
+  
   const btn = document.getElementById("submitBtn");
   btn.disabled = true;
-  btn.innerHTML = '<span class="loading-spinner"></span> 处理订单中...';
+  btn.innerHTML = '<span class="loading-spinner"></span> 提交订单中...';
   submittingFlag = true;
-
+  
   // 整理商品清单
   let orderProducts = [];
   cookedProducts.forEach((p, i) => {
     if (p.isFixed) {
       let qty = parseInt(document.getElementById(`cooked_${i}`)?.value) || 0;
-      if (qty > 0) orderProducts.push({ name: `${p.name} (${p.unit})`, qty, price: p.price });
+      if (qty > 0) orderProducts.push({ name: `${p.name} (${p.unit})`, qty: qty, price: p.price });
     } else {
       let qty500 = parseInt(document.getElementById(`cooked_${i}_500`)?.value) || 0;
       let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`)?.value) || 0;
@@ -532,38 +526,44 @@ async function submitOrder() {
       if (qty1kg > 0) orderProducts.push({ name: `${p.name} 1KG`, qty: qty1kg, price: p.price1kg });
     }
   });
-
+  
   const reader = new FileReader();
   reader.onload = async function(evt) {
     try {
-      // 执行库存扣减
-      const deductRes = await deductAllSelected();
-      if (!deductRes) {
-        alert("⚠️ 订单提交成功但库存更新部分失败，请联系客服确认");
+      // 扣减库存
+      const deductResult = await deductAllStock();
+      if (!deductResult) {
+        console.warn("部分商品库存扣减失败");
       }
+      
+      // 提交订单
       const payload = {
-        action: "submitOrder",
-        name, phone, address,
+        name: name,
+        phone: phone,
+        address: address,
         delivery: document.getElementById("delivery").value,
         remark: document.getElementById("remark").value,
         products: orderProducts,
         productTotal: document.getElementById("productTotal").innerText,
         shippingFee: document.getElementById("shipping").innerText,
         total: document.getElementById("total").innerText,
-        paymentImage: evt.target.result
+        paymentImage: evt.target.result,
+        freeGifts: ""
       };
+      
       const response = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
       const data = await response.json();
+      
       if (data.status === "success") {
         document.body.innerHTML = `<div style="max-width:600px; margin:50px auto; text-align:center; background:white; border-radius:28px; padding:32px;">
           <h2 style="color:#b33c1c;">🎉 下单成功！</h2>
           <p>订单编号：<strong style="font-size:20px;">${data.orderId}</strong></p>
-          <p>我们将会尽快处理，感谢惠顾🙏</p>
-          <p style="font-size:13px; color:#a16241;">请保存此页面或截图订单号</p>
+          <p>我们会尽快处理您的订单</p>
+          <p style="font-size:13px; color:#a16241;">请保留订单号以备查询</p>
         </div>`;
       } else {
         alert("提交失败：" + (data.message || "未知错误"));
@@ -578,15 +578,18 @@ async function submitOrder() {
       submittingFlag = false;
     }
   };
-  reader.onerror = () => {
-    alert("图片读取失败");
+  
+  reader.onerror = function() {
+    alert("读取图片失败");
     btn.disabled = false;
     btn.innerHTML = "📦 提交订单";
     submittingFlag = false;
   };
+  
   reader.readAsDataURL(file);
 }
 
+// 初始化
 document.getElementById("delivery").addEventListener("change", calc);
 document.getElementById("submitBtn").onclick = submitOrder;
 renderCookedProducts();
