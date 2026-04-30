@@ -2,73 +2,268 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>福满家 订单系统 - 带库存管理</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>福满家订单系统 - 带库存管理</title>
 <style>
-body { font-family: Arial; max-width:650px; margin:auto; padding:20px; background:#f9f9f9;}
-h2 { text-align:center; color:#8B0000;}
-h3 { background:#eee; padding:8px; border-left:4px solid #8B0000; margin-top:20px;}
-input, select { width:100%; padding:10px; margin:5px 0; box-sizing:border-box; border:1px solid #ddd; border-radius:5px;}
-.product { border-bottom:1px solid #eee; padding:12px 5px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;}
-.product-name { flex:2; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:8px;}
-.product-name:hover { color:#8B0000; text-decoration:underline; }
-.stock-badge { font-size:12px; background:#f0f0f0; padding:2px 6px; border-radius:10px; color:#666; }
-.stock-badge.low { background:#ffcccc; color:#cc0000; }
-.stock-badge.out { background:#ff9999; color:#990000; }
-.product-price { flex:1; color:#666; font-size:14px;}
-.product-qty { flex:1; min-width:100px;}
-.product-qty input { width:80px; padding:8px; text-align:center;}
-button { width:100%; padding:12px; background:#8B0000; color:white; border:none; font-size:18px; cursor:pointer; border-radius:5px; margin-top:10px;}
-button:disabled { background:gray; cursor:not-allowed;}
-.total { background:#fff3e0; padding:15px; border-radius:8px; margin:15px 0;}
-.total-item { display:flex; justify-content:space-between; margin:8px 0;}
-.total-item b { font-size:20px; color:#8B0000;}
-.qty-group { display:flex; align-items:center; gap:8px; background:#f0f0f0; padding:5px 10px; border-radius:8px; }
-.qty-group button { width:30px; background:#ddd; color:#333; margin:0; padding:5px; font-size:16px; }
-.qty-group input { width:60px; text-align:center; margin:0; padding:5px; }
-.stock-loading { font-size:12px; color:#999; margin-left:8px; }
+  * {
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+  body {
+    background: #fef7e8;
+    margin: 0;
+    padding: 20px;
+  }
+  .container {
+    max-width: 700px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 28px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+    overflow: hidden;
+    padding: 20px 24px 32px;
+    border: 1px solid #ffddb0;
+  }
+  h2 {
+    text-align: center;
+    color: #b33c1c;
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+  }
+  .sub {
+    text-align: center;
+    font-size: 13px;
+    color: #a16241;
+    border-bottom: 1px solid #f3dec8;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+  h3 {
+    background: #fff0e4;
+    padding: 10px 12px;
+    border-radius: 24px;
+    font-size: 1.2rem;
+    color: #8b3c1c;
+    margin: 20px 0 12px 0;
+    font-weight: 600;
+  }
+  label {
+    font-weight: 600;
+    color: #5a3e2e;
+    display: block;
+    margin-top: 12px;
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #ffd9b5;
+    border-radius: 20px;
+    background: #fffef9;
+    font-size: 14px;
+    transition: 0.2s;
+    margin-bottom: 4px;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: #c26e3c;
+    box-shadow: 0 0 0 2px rgba(194,110,60,0.2);
+  }
+  .product-card {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 12px 14px;
+    border: 1px solid #ffe3cc;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    margin-bottom: 16px;
+  }
+  .product-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    cursor: pointer;
+  }
+  .product-name {
+    font-weight: 700;
+    color: #5a3e2e;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .product-name:hover {
+    color: #b33c1c;
+  }
+  .stock-badge {
+    font-size: 11px;
+    background: #f0f0f0;
+    padding: 3px 8px;
+    border-radius: 20px;
+    color: #666;
+    font-weight: normal;
+  }
+  .stock-badge.low {
+    background: #ffe0e0;
+    color: #c0392b;
+  }
+  .stock-badge.out {
+    background: #ffc8c8;
+    color: #a00;
+  }
+  .product-price {
+    color: #b33c1c;
+    font-weight: 600;
+    font-size: 13px;
+    background: #fff0e4;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+  .qty-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f9f5ef;
+    padding: 6px 12px;
+    border-radius: 40px;
+    margin-top: 8px;
+  }
+  .qty-group button {
+    width: 32px;
+    background: #e9ddd0;
+    color: #5a3e2e;
+    margin: 0;
+    padding: 5px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 30px;
+    border: none;
+    cursor: pointer;
+  }
+  .qty-group button:active {
+    background: #d4c4b2;
+  }
+  .qty-group input {
+    width: 65px;
+    text-align: center;
+    margin: 0;
+    padding: 6px;
+    border-radius: 30px;
+  }
+  .total {
+    background: #fff3e6;
+    padding: 16px;
+    border-radius: 28px;
+    margin: 20px 0;
+  }
+  .total-item {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+    font-size: 1rem;
+  }
+  .total-item b {
+    font-size: 1.3rem;
+    color: #b33c1c;
+  }
+  button.submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: #b33c1c;
+    color: white;
+    border: none;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 40px;
+    margin-top: 10px;
+    transition: 0.2s;
+  }
+  button.submit-btn:disabled {
+    background: #cfa690;
+    cursor: not-allowed;
+  }
+  .required-star {
+    color: #d9534f;
+  }
+  .address-note {
+    font-size: 12px;
+    color: #a16241;
+    margin-top: -4px;
+    margin-bottom: 8px;
+  }
+  .loading-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #fff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #f0e0d0;
+    margin: 16px 0;
+  }
 </style>
 </head>
 <body>
+<div class="container">
+  <h2>🍖 福满家</h2>
+  <div class="sub">手工肉干 · 传统风味 · 新鲜制作</div>
 
-<h2>福满家 订单系统</h2>
+  <h3>📋 客户资料</h3>
+  <label>姓名 <span class="required-star">*</span></label>
+  <input id="name" placeholder="请填写真实姓名">
+  <label>联络号码 <span class="required-star">*</span></label>
+  <input id="phone" placeholder="例如：0123456789" maxlength="11">
+  <label>地址 <span class="required-star">*</span></label>
+  <input id="address" placeholder="完整送货地址">
+  <div class="address-note">📌 邮寄需填写完整地址，自取则填“自取”</div>
 
-<h3>📋 客户资料</h3>
-<input id="name" placeholder="姓名 *">
-<input id="phone" placeholder="联络号码 *">
-<input id="address" placeholder="地址 *">
+  <h3>🚚 配送方式</h3>
+  <select id="delivery">
+    <option value="自取">自取 (免运费)</option>
+    <option value="邮寄">邮寄 (按重量计算)</option>
+  </select>
+  <p style="font-size:13px; background:#f9ede3; padding:8px; border-radius:16px;"><b>🏠 自取地址：</b>9, Jalan Perdagangan 1, Taman Universiti, 81300 Skudai, Johor.</p>
 
-<h3>🚚 配送方式</h3>
-<select id="delivery" onchange="calc()">
-  <option value="自取">自取</option>
-  <option value="邮寄">邮寄</option>
-</select>
-<p><b>自取地址：</b>9, Jalan Perdagangan 1, Taman Universiti, 81300, Skudai, Johor.</p >
+  <h3>🍖 商品列表 <span style="font-size:12px; font-weight:normal;">(点击商品名查看实时库存)</span></h3>
+  <div id="cookedProducts"></div>
 
-<!-- 熟肉商品 -->
-<h3>🍖 商品列表 <span style="font-size:12px; font-weight:normal;">(点击商品名查看库存)</span></h3>
-<div id="cookedProducts"></div>
+  <h3>📝 备注</h3>
+  <input id="remark" placeholder="特殊要求或备注 (选填)">
 
-<h3>📝 备注</h3>
-<input id="remark" placeholder="备注（可选）">
+  <h3>🖼️ 上传付款截图 <span class="required-star">*</span></h3>
+  <input type="file" id="payment" accept="image/*">
+  <div class="address-note">支持 JPG/PNG，不超过2MB</div>
 
-<h3>🖼️ 上传付款截图 *</h3>
-<input type="file" id="payment" accept="image/*">
+  <div class="total">
+    <div class="total-item">商品总计：RM <span id="productTotal">0.00</span></div>
+    <div class="total-item">运费：RM <span id="shipping">0.00</span></div>
+    <div class="total-item"><b>总计付款：RM <span id="total">0.00</span></b></div>
+  </div>
 
-<div class="total">
-    <div class="total-item">商品总计：RM <span id="productTotal">0</span></div>
-    <div class="total-item">运费：RM <span id="shipping">0</span></div>
-    <div class="total-item"><b>总计：RM <span id="total">0</span></b></div>
+  <button class="submit-btn" id="submitBtn">📦 提交订单</button>
 </div>
 
-<button id="submitBtn">提交订单</button>
-
-  <script>
-// ======================== 配置 ========================
-// ⚠️ 请替换成你部署后的 Apps Script URL
+<script>
+// ======================== 请替换为你的 Apps Script URL ========================
 const API_URL = "https://script.google.com/macros/s/AKfycbwLTjiqX6iXVdxk_CPBnSXKdXBwoIz-beN1-TCvrczne6K15oXVDgRrEZO8Dk74W-WXBQ/exec";
 
-// ========== 商品数据 ==========
+// ======================== 商品数据 ========================
 const cookedProducts = [
   { name: "猪肉碎肉干 Pork Meat (Minced Meat)", price500: 55, price1kg: 108 },
   { name: "鸡肉碎肉干 Chicken Meat (Minced Meat)", price500: 55, price1kg: 108 },
@@ -81,315 +276,200 @@ const cookedProducts = [
   { name: "麻辣鱼皮 Mala Fish Skin", price: 23, unit: "100G/Pkt", isFixed: true }
 ];
 
-// 判断是否为肉干类商品（需要换算1KG=2包500G）
 function isMeatProduct(productName) {
-    return productName.includes("肉干") || productName.includes("Meat") || productName.includes("Bacon");
+  return productName.includes("肉干") || productName.includes("Meat") || productName.includes("Bacon");
 }
 
-// ========== 库存API函数 ==========
+// ---------- 库存 API ----------
+// 缓存库存数据，避免频繁请求（可选）
+let stockCache = new Map();
 
-// 查询单个商品库存（统一用500G为单位）
-async function fetchStock(productName, variant) {
-    try {
-        // 肉干类商品统一用 _500g 后缀查询
-        let searchId = productName;
-        if (isMeatProduct(productName)) {
-            searchId = `${productName}_500g`;
-        }
-        
-        const url = `${API_URL}?action=getStock&productId=${encodeURIComponent(searchId)}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        if (data.success) {
-            let rawStock = data.stock;  // 这是500G包装的pkt数
-            
-            // 如果是查询1KG规格，需要换算显示
-            if (variant === "1KG") {
-                let available1kg = Math.floor(rawStock / 2);
-                return { 
-                    available: available1kg > 0, 
-                    stock: available1kg,
-                    rawStock: rawStock
-                };
-            }
-            
-            // 500G或其他固定包装
-            return { 
-                available: rawStock > 0, 
-                stock: rawStock,
-                rawStock: rawStock
-            };
-        } else {
-            // 商品未在库存表中找到，默认允许下单（假设无限库存）
-            console.warn(`商品 "${productName}" 未在库存表中找到`);
-            return { available: true, stock: 999, rawStock: 999 };
-        }
-    } catch (error) {
-        console.error("查询库存失败:", error);
-        return { available: true, stock: 0, error: true };
+async function fetchStock(productName, variant = "500G") {
+  try {
+    let searchId = productName;
+    if (isMeatProduct(productName)) {
+      searchId = `${productName}_500g`;
     }
+    const url = `${API_URL}?action=getStock&productId=${encodeURIComponent(searchId)}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data.success) {
+      let rawStock = parseInt(data.stock) || 0;
+      if (variant === "1KG" && isMeatProduct(productName)) {
+        let available1kg = Math.floor(rawStock / 2);
+        return { available: available1kg > 0, stock: available1kg, rawStock: rawStock };
+      }
+      return { available: rawStock > 0, stock: rawStock, rawStock: rawStock };
+    }
+    return { available: true, stock: 999, rawStock: 999 };
+  } catch (error) {
+    console.warn("库存查询失败", error);
+    return { available: true, stock: 0, error: true };
+  }
 }
 
-// 扣减库存（根据规格自动换算）
 async function deductStock(productName, quantity, variant) {
-    try {
-        // 计算实际要扣的500G pkt数
-        let actualPkts = quantity;
-        
-        // 肉干类：1KG需要扣2 pkt
-        if (isMeatProduct(productName) && variant === "1KG") {
-            actualPkts = quantity * 2;
-        }
-        
-        // 统一用500g后缀的ID去扣库存
-        let productId = productName;
-        if (isMeatProduct(productName)) {
-            productId = `${productName}_500g`;
-        }
-        
-        const response = await fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                action: "deductStock",
-                productId: productId,
-                quantity: actualPkts
-            })
-        });
-        
-        const data = await response.json();
-        return data.success;
-    } catch (error) {
-        console.error("扣减库存失败:", error);
-        return false;
+  try {
+    let actualPkts = quantity;
+    if (isMeatProduct(productName) && variant === "1KG") {
+      actualPkts = quantity * 2;
     }
+    let productId = productName;
+    if (isMeatProduct(productName)) {
+      productId = `${productName}_500g`;
+    }
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "deductStock", productId: productId, quantity: actualPkts })
+    });
+    const data = await response.json();
+    return data.success;
+  } catch (error) {
+    console.error("扣减库存失败", error);
+    return false;
+  }
 }
 
-// 显示库存弹窗（供顾客点击查询）
 async function showStockDialog(productName, variant) {
-    let displayName = productName;
-    if (variant && variant !== "500G/1KG") {
-        displayName = `${productName} (${variant})`;
-    }
-    
-    alert(`🔍 正在查询 ${displayName} 的库存...`);
-    
-    const stockInfo = await fetchStock(productName, variant);
-    
-    if (stockInfo.error) {
-        alert(`⚠️ 无法获取 ${displayName} 的库存信息，请稍后再试或联系客服。`);
-    } else if (stockInfo.available && stockInfo.stock > 0) {
-        if (variant === "1KG" && isMeatProduct(productName)) {
-            alert(`✅ ${displayName}\n📦 剩余库存：${stockInfo.stock} 包 (1KG)\n📦 相当于 ${stockInfo.rawStock} 包 500G\n\n可以正常下单！`);
-        } else {
-            alert(`✅ ${displayName}\n📦 剩余库存：${stockInfo.stock} 个\n\n可以正常下单！`);
-        }
+  let displayName = variant ? `${productName} (${variant})` : productName;
+  alert(`🔍 正在查询 ${displayName} 库存...`);
+  const info = await fetchStock(productName, variant);
+  if (info.error) {
+    alert(`⚠️ 无法获取 ${displayName} 库存，请联系客服。`);
+  } else if (info.available && info.stock > 0) {
+    alert(`✅ ${displayName}\n📦 剩余数量：${info.stock} 个\n可以放心下单！`);
+  } else {
+    alert(`❌ ${displayName}\n库存不足，请选择其他商品。`);
+  }
+}
+
+async function checkAllStockBeforeSubmit() {
+  let items = [];
+  cookedProducts.forEach((p, idx) => {
+    if (p.isFixed) {
+      let qty = parseInt(document.getElementById(`cooked_${idx}`)?.value) || 0;
+      if (qty > 0) items.push({ name: p.name, variant: p.unit, qty: qty, isMeat: false });
     } else {
-        alert(`❌ ${displayName}\n📦 库存不足，暂时无法下单！\n\n请选择其他商品或联系客服。`);
+      let qty500 = parseInt(document.getElementById(`cooked_${idx}_500`)?.value) || 0;
+      let qty1kg = parseInt(document.getElementById(`cooked_${idx}_1kg`)?.value) || 0;
+      if (qty500 > 0) items.push({ name: p.name, variant: "500G", qty: qty500, isMeat: true });
+      if (qty1kg > 0) items.push({ name: p.name, variant: "1KG", qty: qty1kg, isMeat: true });
     }
+  });
+  if (items.length === 0) {
+    alert("请至少选择一件商品");
+    return false;
+  }
+  for (let item of items) {
+    const stockInfo = await fetchStock(item.name, item.variant);
+    if (stockInfo.error) {
+      alert(`⚠️ 无法验证 ${item.name} ${item.variant} 库存，请重试`);
+      return false;
+    }
+    let required = item.qty;
+    if (item.isMeat && item.variant === "1KG") required = item.qty * 2;
+    if (stockInfo.rawStock < required) {
+      let maxShow = stockInfo.rawStock;
+      if (item.isMeat && item.variant === "1KG") maxShow = Math.floor(stockInfo.rawStock / 2);
+      alert(`❌ ${item.name} ${item.variant}\n需求：${item.qty}，最大可售：${maxShow}\n库存不足！`);
+      return false;
+    }
+  }
+  return true;
 }
 
-// 检查所有选购商品的库存（下单前调用）
-async function checkAllStock() {
-    let productsToCheck = [];
-    
-    cookedProducts.forEach((p, i) => {
-        if (p.isFixed) {
-            let qty = parseInt(document.getElementById(`cooked_${i}`).value) || 0;
-            if (qty > 0) {
-                productsToCheck.push({
-                    name: p.name,
-                    variant: p.unit,
-                    qty: qty,
-                    isMeat: isMeatProduct(p.name)
-                });
-            }
-        } else {
-            let qty500 = parseInt(document.getElementById(`cooked_${i}_500`).value) || 0;
-            let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`).value) || 0;
-            if (qty500 > 0) {
-                productsToCheck.push({
-                    name: p.name,
-                    variant: "500G",
-                    qty: qty500,
-                    isMeat: true
-                });
-            }
-            if (qty1kg > 0) {
-                productsToCheck.push({
-                    name: p.name,
-                    variant: "1KG",
-                    qty: qty1kg,
-                    isMeat: true
-                });
-            }
-        }
-    });
-    
-    if (productsToCheck.length === 0) {
-        alert("请至少选择一件商品");
-        return false;
+async function deductAllSelected() {
+  let items = [];
+  cookedProducts.forEach((p, idx) => {
+    if (p.isFixed) {
+      let qty = parseInt(document.getElementById(`cooked_${idx}`)?.value) || 0;
+      if (qty > 0) items.push({ name: p.name, variant: p.unit, qty: qty, isMeat: false });
+    } else {
+      let qty500 = parseInt(document.getElementById(`cooked_${idx}_500`)?.value) || 0;
+      let qty1kg = parseInt(document.getElementById(`cooked_${idx}_1kg`)?.value) || 0;
+      if (qty500 > 0) items.push({ name: p.name, variant: "500G", qty: qty500, isMeat: true });
+      if (qty1kg > 0) items.push({ name: p.name, variant: "1KG", qty: qty1kg, isMeat: true });
     }
-    
-    // 逐个检查库存
-    for (let item of productsToCheck) {
-        const stockInfo = await fetchStock(item.name, item.variant);
-        
-        if (stockInfo.error) {
-            alert(`⚠️ 无法验证 ${item.name} ${item.variant} 的库存，请稍后再试`);
-            return false;
-        }
-        
-        // 计算需要的pkt数
-        let requiredPkts = item.qty;
-        if (item.isMeat && item.variant === "1KG") {
-            requiredPkts = item.qty * 2;
-        }
-        
-        // 检查是否足够
-        if (stockInfo.rawStock < requiredPkts) {
-            let maxAvailable = stockInfo.rawStock;
-            let unitText = "个";
-            if (item.isMeat && item.variant === "1KG") {
-                maxAvailable = Math.floor(stockInfo.rawStock / 2);
-                unitText = "包 (1KG)";
-            }
-            alert(`❌ ${item.name} ${item.variant}\n需求数量：${item.qty}\n最多可售：${maxAvailable} ${unitText}\n\n库存不足，无法下单！`);
-            return false;
-        }
-    }
-    
-    return true;
+  });
+  let allOk = true;
+  for (let item of items) {
+    let success = await deductStock(item.name, item.qty, item.variant);
+    if (!success) allOk = false;
+  }
+  return allOk;
 }
 
-// 批量扣减所有选购商品的库存（下单后调用）
-async function deductAllStock() {
-    let productsToDeduct = [];
-    
-    cookedProducts.forEach((p, i) => {
-        if (p.isFixed) {
-            let qty = parseInt(document.getElementById(`cooked_${i}`).value) || 0;
-            if (qty > 0) {
-                productsToDeduct.push({
-                    name: p.name,
-                    variant: p.unit,
-                    qty: qty,
-                    isMeat: isMeatProduct(p.name)
-                });
-            }
-        } else {
-            let qty500 = parseInt(document.getElementById(`cooked_${i}_500`).value) || 0;
-            let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`).value) || 0;
-            if (qty500 > 0) {
-                productsToDeduct.push({
-                    name: p.name,
-                    variant: "500G",
-                    qty: qty500,
-                    isMeat: true
-                });
-            }
-            if (qty1kg > 0) {
-                productsToDeduct.push({
-                    name: p.name,
-                    variant: "1KG",
-                    qty: qty1kg,
-                    isMeat: true
-                });
-            }
-        }
-    });
-    
-    let allSuccess = true;
-    for (let item of productsToDeduct) {
-        const success = await deductStock(item.name, item.qty, item.variant);
-        if (!success) {
-            allSuccess = false;
-            console.error(`扣减库存失败: ${item.name} ${item.variant}`);
-        }
-    }
-    
-    return allSuccess;
-}
-
-// ========== UI渲染和计算函数 ==========
-
+// ---------- UI 渲染 & 计算 ----------
 function changeQty(elementId, delta) {
   let input = document.getElementById(elementId);
   if (input) {
-    let newVal = parseInt(input.value) || 0;
-    newVal += delta;
+    let newVal = (parseInt(input.value) || 0) + delta;
     if (newVal < 0) newVal = 0;
     input.value = newVal;
     calc();
   }
 }
 
-// 渲染熟肉商品（添加点击查询库存功能）
 function renderCookedProducts() {
   let html = "";
   cookedProducts.forEach((p, i) => {
     if (p.isFixed) {
-      html += `<div class="product">
-          <div class="product-name" onclick="showStockDialog('${p.name.replace(/'/g, "\\'")}', '${p.unit.replace(/'/g, "\\'")}')">
-            ${p.name} <span class="stock-badge">📊 点我查库存</span>
-          </div>
+      html += `<div class="product-card">
+        <div class="product-header" onclick="showStockDialog('${p.name.replace(/'/g, "\\'")}', '${p.unit.replace(/'/g, "\\'")}')">
+          <span class="product-name">📦 ${p.name} <span class="stock-badge">🔍 查库存</span></span>
           <span class="product-price">RM${p.price} / ${p.unit}</span>
-          <span class="product-qty">
-            <input type="number" id="cooked_${i}" value="0" min="0" onchange="calc()" step="1" style="width:80px;">
-          </span>
+        </div>
+        <div class="qty-group">
+          <button type="button" onclick="changeQty('cooked_${i}', -1)">−</button>
+          <input type="number" id="cooked_${i}" value="0" min="0" step="1" onchange="calc()">
+          <button type="button" onclick="changeQty('cooked_${i}', 1)">+</button>
+        </div>
       </div>`;
     } else {
-      html += `<div class="product" style="flex-direction:column; align-items:flex-start;">
-          <div style="width:100%; margin-bottom:8px;">
-            <span class="product-name" style="cursor:pointer;" onclick="showStockDialog('${p.name.replace(/'/g, "\\'")}', '500G/1KG')">
-              ${p.name} <span class="stock-badge">📊 点我查库存</span>
-            </span>
-            <span class="product-price" style="float:right;">500G: RM${p.price500} | 1KG: RM${p.price1kg}</span>
+      html += `<div class="product-card">
+        <div class="product-header" onclick="showStockDialog('${p.name.replace(/'/g, "\\'")}', '肉干规格')">
+          <span class="product-name">🥩 ${p.name} <span class="stock-badge">📊 查库存</span></span>
+          <span class="product-price">500G RM${p.price500} | 1KG RM${p.price1kg}</span>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:6px;">
+          <div class="qty-group">
+            <span style="font-weight:600;">500G</span>
+            <button type="button" onclick="changeQty('cooked_${i}_500', -1)">−</button>
+            <input type="number" id="cooked_${i}_500" value="0" min="0" onchange="calc()">
+            <button type="button" onclick="changeQty('cooked_${i}_500', 1)">+</button>
           </div>
-          <div style="display:flex; gap:20px; width:100%;">
-            <div class="qty-group">
-              <span style="font-weight:bold; min-width:45px;">500G</span>
-              <button type="button" onclick="changeQty('cooked_${i}_500', -1)">-</button>
-              <input type="number" id="cooked_${i}_500" value="0" min="0" onchange="calc()">
-              <button type="button" onclick="changeQty('cooked_${i}_500', 1)">+</button>
-            </div>
-            <div class="qty-group">
-              <span style="font-weight:bold; min-width:45px;">1KG</span>
-              <button type="button" onclick="changeQty('cooked_${i}_1kg', -1)">-</button>
-              <input type="number" id="cooked_${i}_1kg" value="0" min="0" onchange="calc()">
-              <button type="button" onclick="changeQty('cooked_${i}_1kg', 1)">+</button>
-            </div>
+          <div class="qty-group">
+            <span style="font-weight:600;">1KG</span>
+            <button type="button" onclick="changeQty('cooked_${i}_1kg', -1)">−</button>
+            <input type="number" id="cooked_${i}_1kg" value="0" min="0" onchange="calc()">
+            <button type="button" onclick="changeQty('cooked_${i}_1kg', 1)">+</button>
           </div>
+        </div>
       </div>`;
     }
   });
   document.getElementById("cookedProducts").innerHTML = html;
 }
 
-// 计算总价和运费
 function calc() {
   let total = 0;
   let weight = 0;
-  
   cookedProducts.forEach((p, i) => {
     if (p.isFixed) {
-      let qty = parseInt(document.getElementById(`cooked_${i}`).value) || 0;
+      let qty = parseInt(document.getElementById(`cooked_${i}`)?.value) || 0;
       total += qty * p.price;
-      if (p.name.includes("肉松") || p.name.includes("Floss")) weight += qty * 0.2;
-      else if (p.name.includes("虾米卷") || p.name.includes("Spring Roll")) weight += qty * 0.22;
-      else if (p.name.includes("鸡蛋饼") || p.name.includes("Kuih Kapit")) weight += qty * 0.34;
-      else if (p.name.includes("鱼皮") || p.name.includes("Fish Skin")) weight += qty * 0.1;
+      if (p.name.includes("肉松")) weight += qty * 0.2;
+      else if (p.name.includes("虾米卷")) weight += qty * 0.22;
+      else if (p.name.includes("鸡蛋饼")) weight += qty * 0.34;
+      else if (p.name.includes("鱼皮")) weight += qty * 0.1;
     } else {
-      let qty500 = parseInt(document.getElementById(`cooked_${i}_500`).value) || 0;
-      let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`).value) || 0;
-      total += qty500 * p.price500;
-      total += qty1kg * p.price1kg;
-      weight += qty500 * 0.5;
-      weight += qty1kg * 1;
+      let qty500 = parseInt(document.getElementById(`cooked_${i}_500`)?.value) || 0;
+      let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`)?.value) || 0;
+      total += qty500 * p.price500 + qty1kg * p.price1kg;
+      weight += qty500 * 0.5 + qty1kg * 1;
     }
   });
-  
   let ship = 0;
   let delivery = document.getElementById("delivery").value;
   if (delivery === "邮寄") {
@@ -398,114 +478,116 @@ function calc() {
     else if (weight <= 5) ship = 20;
     else ship = 20 + Math.ceil((weight - 5) / 1) * 5;
   }
-  
   document.getElementById("productTotal").innerText = total.toFixed(2);
   document.getElementById("shipping").innerText = ship.toFixed(2);
   document.getElementById("total").innerText = (total + ship).toFixed(2);
 }
 
-// 提交订单（集成库存检查）
+// 提交订单 (整合库存检查与扣减)
+let submittingFlag = false;
+
 async function submitOrder() {
-  let name = document.getElementById("name").value;
-  let phone = document.getElementById("phone").value;
-  let address = document.getElementById("address").value;
-  
+  if (submittingFlag) return;
+  const name = document.getElementById("name").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const address = document.getElementById("address").value.trim();
   if (!name || !phone || !address) {
-    alert("请填写完整资料");
+    alert("请完整填写姓名、电话、地址");
     return;
   }
-  
-  let file = document.getElementById("payment").files[0];
+  const phoneRegex = /^[0-9]{9,11}$/;
+  if (!phoneRegex.test(phone)) {
+    alert("请填写正确的手机号码 (9-11位数字)");
+    return;
+  }
+  const file = document.getElementById("payment").files[0];
   if (!file) {
-    alert("必须上传付款截图");
+    alert("请上传付款截图");
     return;
   }
   if (file.size > 2 * 1024 * 1024) {
     alert("图片不能超过2MB");
     return;
   }
-  
-  // 下单前检查库存
-  const stockOk = await checkAllStock();
-  if (!stockOk) {
-    return;
-  }
-  
-  let btn = document.getElementById("submitBtn");
+
+  // 库存预检
+  const stockOk = await checkAllStockBeforeSubmit();
+  if (!stockOk) return;
+
+  const btn = document.getElementById("submitBtn");
   btn.disabled = true;
-  btn.innerText = "提交中...";
-  
+  btn.innerHTML = '<span class="loading-spinner"></span> 处理订单中...';
+  submittingFlag = true;
+
+  // 整理商品清单
   let orderProducts = [];
-  
   cookedProducts.forEach((p, i) => {
     if (p.isFixed) {
-      let qty = parseInt(document.getElementById(`cooked_${i}`).value) || 0;
-      if (qty > 0) orderProducts.push({ name: `${p.name} (${p.unit})`, qty: qty, price: p.price });
+      let qty = parseInt(document.getElementById(`cooked_${i}`)?.value) || 0;
+      if (qty > 0) orderProducts.push({ name: `${p.name} (${p.unit})`, qty, price: p.price });
     } else {
-      let qty500 = parseInt(document.getElementById(`cooked_${i}_500`).value) || 0;
-      let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`).value) || 0;
+      let qty500 = parseInt(document.getElementById(`cooked_${i}_500`)?.value) || 0;
+      let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`)?.value) || 0;
       if (qty500 > 0) orderProducts.push({ name: `${p.name} 500G`, qty: qty500, price: p.price500 });
       if (qty1kg > 0) orderProducts.push({ name: `${p.name} 1KG`, qty: qty1kg, price: p.price1kg });
     }
   });
-  
-  let reader = new FileReader();
-  reader.onload = async function() {
+
+  const reader = new FileReader();
+  reader.onload = async function(evt) {
     try {
-      // 下单后扣减库存
-      const deductSuccess = await deductAllStock();
-      if (!deductSuccess) {
-        alert("⚠️ 订单提交成功，但库存更新失败，请联系客服确认订单。");
+      // 执行库存扣减
+      const deductRes = await deductAllSelected();
+      if (!deductRes) {
+        alert("⚠️ 订单提交成功但库存更新部分失败，请联系客服确认");
       }
-      
-      let res = await fetch(API_URL, {
+      const payload = {
+        action: "submitOrder",
+        name, phone, address,
+        delivery: document.getElementById("delivery").value,
+        remark: document.getElementById("remark").value,
+        products: orderProducts,
+        productTotal: document.getElementById("productTotal").innerText,
+        shippingFee: document.getElementById("shipping").innerText,
+        total: document.getElementById("total").innerText,
+        paymentImage: evt.target.result
+      };
+      const response = await fetch(API_URL, {
         method: "POST",
-        body: JSON.stringify({
-          name: name,
-          phone: phone,
-          address: address,
-          delivery: document.getElementById("delivery").value,
-          remark: document.getElementById("remark").value,
-          products: orderProducts,
-          productTotal: document.getElementById("productTotal").innerText,
-          shippingFee: document.getElementById("shipping").innerText,
-          total: document.getElementById("total").innerText,
-          paymentImage: reader.result,
-          freeGifts: ""
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
-      
-      let data = await res.json();
-      
+      const data = await response.json();
       if (data.status === "success") {
-        document.body.innerHTML = `<div style="text-align:center;padding:50px;">
-          <h2>🎉 下单成功</h2>
-          <p>订单编号：<b>${data.orderId}</b></p >
-          <p>我们会尽快处理您的订单</p >
-          <p>请保留付款截图以备查询</p >
+        document.body.innerHTML = `<div style="max-width:600px; margin:50px auto; text-align:center; background:white; border-radius:28px; padding:32px;">
+          <h2 style="color:#b33c1c;">🎉 下单成功！</h2>
+          <p>订单编号：<strong style="font-size:20px;">${data.orderId}</strong></p>
+          <p>我们将会尽快处理，感谢惠顾🙏</p>
+          <p style="font-size:13px; color:#a16241;">请保存此页面或截图订单号</p>
         </div>`;
       } else {
         alert("提交失败：" + (data.message || "未知错误"));
         btn.disabled = false;
-        btn.innerText = "提交订单";
+        btn.innerHTML = "📦 提交订单";
+        submittingFlag = false;
       }
     } catch (err) {
       alert("网络错误：" + err.message);
       btn.disabled = false;
-      btn.innerText = "提交订单";
+      btn.innerHTML = "📦 提交订单";
+      submittingFlag = false;
     }
   };
-  
-  reader.onerror = function() {
-    alert("读取图片失败");
+  reader.onerror = () => {
+    alert("图片读取失败");
     btn.disabled = false;
-    btn.innerText = "提交订单";
+    btn.innerHTML = "📦 提交订单";
+    submittingFlag = false;
   };
-  
   reader.readAsDataURL(file);
 }
 
-// 绑定事件和初始化
+document.getElementById("delivery").addEventListener("change", calc);
 document.getElementById("submitBtn").onclick = submitOrder;
 renderCookedProducts();
 calc();
