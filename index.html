@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-<title>福满家订单系统 - 带库存管理</title>
+<title>福满家订单系统 - 实时库存</title>
 <style>
   * {
     box-sizing: border-box;
@@ -78,6 +78,12 @@
     padding: 12px 14px;
     border: 1px solid #ffe3cc;
     margin-bottom: 16px;
+    transition: 0.2s;
+  }
+  .product-card.out-of-stock {
+    background: #fff5f5;
+    border-color: #ffcccc;
+    opacity: 0.7;
   }
   .product-header {
     display: flex;
@@ -85,7 +91,6 @@
     align-items: center;
     flex-wrap: wrap;
     margin-bottom: 12px;
-    cursor: pointer;
   }
   .product-name {
     font-weight: 700;
@@ -96,16 +101,34 @@
     gap: 8px;
     flex-wrap: wrap;
   }
-  .product-name:hover {
-    color: #b33c1c;
-  }
-  .stock-badge {
+  .stock-display {
     font-size: 11px;
-    background: #f0f0f0;
     padding: 3px 8px;
     border-radius: 20px;
-    color: #666;
     font-weight: normal;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .stock-display.high {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+  .stock-display.medium {
+    background: #fff3e0;
+    color: #ef6c00;
+  }
+  .stock-display.low {
+    background: #ffebee;
+    color: #c62828;
+  }
+  .stock-display.out {
+    background: #ffcdd2;
+    color: #b71c1c;
+  }
+  .stock-display.loading {
+    background: #f0f0f0;
+    color: #999;
   }
   .product-price {
     color: #b33c1c;
@@ -139,12 +162,20 @@
   .qty-group button:active {
     background: #d4c4b2;
   }
+  .qty-group button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
   .qty-group input {
     width: 70px;
     text-align: center;
     margin: 0;
     padding: 6px;
     border-radius: 30px;
+  }
+  .qty-group input:disabled {
+    background: #f0f0f0;
+    cursor: not-allowed;
   }
   .total {
     background: #fff3e6;
@@ -202,6 +233,17 @@
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+  .refresh-stock {
+    float: right;
+    font-size: 12px;
+    background: #e9ddd0;
+    padding: 4px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+  }
+  .refresh-stock:hover {
+    background: #d4c4b2;
+  }
 </style>
 </head>
 <body>
@@ -225,7 +267,7 @@
   </select>
   <p style="font-size:13px; background:#f9ede3; padding:8px; border-radius:16px;"><b>🏠 自取地址：</b>9, Jalan Perdagangan 1, Taman Universiti, 81300 Skudai, Johor.</p>
 
-  <h3>🍖 商品列表 <span style="font-size:12px; font-weight:normal;">(点击商品名查看实时库存)</span></h3>
+  <h3>🍖 商品列表 <span class="refresh-stock" onclick="refreshAllStock()">🔄 刷新库存</span></h3>
   <div id="cookedProducts"></div>
 
   <h3>📝 备注</h3>
@@ -246,39 +288,253 @@
 
 <script>
 // ======================== 配置 ========================
-// ⚠️ 请替换成您部署后的 Apps Script URL
-const API_URL = "https://script.google.com/macros/s/AKfycby3YWu210NqfKkRxM3DVfp3OZZQYxD0IUno8FdBfF-Zy95f69A00ZjAIXH8bGKgb1MAUQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwLTjiqX6iXVdxk_CPBnSXKdXBwoIz-beN1-TCvrczne6K15oXVDgRrEZO8Dk74W-WXBQ/exec";
 
-// ======================== 商品数据 ========================
+// ======================== 商品数据（带 productId） ========================
 const cookedProducts = [
-  { name: "猪肉碎肉干 Pork Meat (Minced Meat)", price500: 55, price1kg: 108, productId500: "猪肉碎肉干 Pork Meat (Minced Meat)_500g", productId1kg: "猪肉碎肉干 Pork Meat (Minced Meat)_1kg" },
-  { name: "鸡肉碎肉干 Chicken Meat (Minced Meat)", price500: 55, price1kg: 108, productId500: "鸡肉碎肉干 Chicken Meat (Minced Meat)_500g", productId1kg: "鸡肉碎肉干 Chicken Meat (Minced Meat)_1kg" },
-  { name: "切片肉干 BBQ Sliced Pork Meat", price500: 70, price1kg: 138, productId500: "切片肉干 BBQ Sliced Pork Meat_500g", productId1kg: "切片肉干 BBQ Sliced Pork Meat_1kg" },
-  { name: "帝王肉干 Signature BBQ Bacon", price500: 95, price1kg: 188, productId500: "帝王肉干 Signature BBQ Bacon_500g", productId1kg: "帝王肉干 Signature BBQ Bacon_1kg" },
-  { name: "精品肉松 Pork Floss", price: 30, unit: "200G/Tin", isFixed: true, productId: "精品肉松 Pork Floss" },
-  { name: "黄金辣味虾米卷 Spicy Spring Roll", price: 22, unit: "220G/Tin", isFixed: true, productId: "黄金辣味虾米卷 Spicy Spring Roll" },
-  { name: "炭烧鸡蛋饼 Traditional Kuih Kapit", price: 30, unit: "340G/Tin", isFixed: true, productId: "炭烧鸡蛋饼 Traditional Kuih Kapit" },
-  { name: "咸蛋鱼皮 Salted Egg Fish Skin", price: 23, unit: "100G/Pkt", isFixed: true, productId: "咸蛋鱼皮 Salted Egg Fish Skin" },
-  { name: "麻辣鱼皮 Mala Fish Skin", price: 23, unit: "100G/Pkt", isFixed: true, productId: "麻辣鱼皮 Mala Fish Skin" }
+  { 
+    name: "猪肉碎肉干 Pork Meat (Minced Meat)", 
+    price500: 55, price1kg: 108,
+    productId500: "猪肉碎肉干 Pork Meat (Minced Meat)_500g",
+    productId1kg: "猪肉碎肉干 Pork Meat (Minced Meat)_1kg"
+  },
+  { 
+    name: "鸡肉碎肉干 Chicken Meat (Minced Meat)", 
+    price500: 55, price1kg: 108,
+    productId500: "鸡肉碎肉干 Chicken Meat (Minced Meat)_500g",
+    productId1kg: "鸡肉碎肉干 Chicken Meat (Minced Meat)_1kg"
+  },
+  { 
+    name: "切片肉干 BBQ Sliced Pork Meat", 
+    price500: 70, price1kg: 138,
+    productId500: "切片肉干 BBQ Sliced Pork Meat_500g",
+    productId1kg: "切片肉干 BBQ Sliced Pork Meat_1kg"
+  },
+  { 
+    name: "帝王肉干 Signature BBQ Bacon", 
+    price500: 95, price1kg: 188,
+    productId500: "帝王肉干 Signature BBQ Bacon_500g",
+    productId1kg: "帝王肉干 Signature BBQ Bacon_1kg"
+  },
+  { 
+    name: "精品肉松 Pork Floss", 
+    price: 30, unit: "200G/Tin", isFixed: true,
+    productId: "精品肉松 Pork Floss"
+  },
+  { 
+    name: "黄金辣味虾米卷 Spicy Spring Roll", 
+    price: 22, unit: "220G/Tin", isFixed: true,
+    productId: "黄金辣味虾米卷 Spicy Spring Roll"
+  },
+  { 
+    name: "炭烧鸡蛋饼 Traditional Kuih Kapit", 
+    price: 30, unit: "340G/Tin", isFixed: true,
+    productId: "炭烧鸡蛋饼 Traditional Kuih Kapit"
+  },
+  { 
+    name: "咸蛋鱼皮 Salted Egg Fish Skin", 
+    price: 23, unit: "100G/Pkt", isFixed: true,
+    productId: "咸蛋鱼皮 Salted Egg Fish Skin"
+  },
+  { 
+    name: "麻辣鱼皮 Mala Fish Skin", 
+    price: 23, unit: "100G/Pkt", isFixed: true,
+    productId: "麻辣鱼皮 Mala Fish Skin"
+  }
 ];
 
-function isMeatProduct(product) {
-  return product.includes("肉干") || product.includes("Meat") || product.includes("Bacon");
-}
+// 缓存库存数据
+let stockCache = new Map();
+let stockLoading = new Map();
 
-// ---------- 库存 API（适配您的后端格式）----------
+// ---------- 库存 API ----------
 async function fetchStock(productId) {
+  if (!productId) return null;
+  
+  // 防止重复请求
+  if (stockLoading.get(productId)) {
+    return stockCache.get(productId);
+  }
+  
+  stockLoading.set(productId, true);
+  
   try {
     const url = `${API_URL}?action=getStock&productId=${encodeURIComponent(productId)}`;
     const response = await fetch(url);
     const data = await response.json();
-    return data;
+    
+    if (data.success) {
+      const stockInfo = {
+        stock: data.stock,
+        success: true,
+        lastUpdate: Date.now()
+      };
+      stockCache.set(productId, stockInfo);
+      return stockInfo;
+    } else {
+      stockCache.set(productId, { success: false, stock: 0, error: data.error });
+      return { success: false, stock: 0, error: data.error };
+    }
   } catch (error) {
     console.error("库存查询失败:", error);
-    return { success: false, error: error.toString() };
+    stockCache.set(productId, { success: false, stock: 0, error: error.toString() });
+    return { success: false, stock: 0, error: error.toString() };
+  } finally {
+    stockLoading.set(productId, false);
   }
 }
 
+// 获取库存显示样式
+function getStockDisplayClass(stock) {
+  if (stock === null || stock === undefined) return "loading";
+  if (stock <= 0) return "out";
+  if (stock <= 10) return "low";
+  if (stock <= 30) return "medium";
+  return "high";
+}
+
+// 获取库存显示文字
+function getStockDisplayText(stock, isLoading) {
+  if (isLoading) return "⏳ 查询中...";
+  if (stock === null || stock === undefined) return "❓ 无法获取";
+  if (stock <= 0) return "❌ 缺货";
+  if (stock <= 10) return `⚠️ 仅剩 ${stock} 个`;
+  return `✅ 库存 ${stock} 个`;
+}
+
+// 刷新单个商品库存
+async function refreshStock(productId, elementId, variant = "") {
+  const stockInfo = await fetchStock(productId);
+  const stockElem = document.getElementById(elementId);
+  if (stockElem) {
+    const isLoading = stockLoading.get(productId);
+    const stockNum = stockInfo?.success ? stockInfo.stock : null;
+    const displayClass = getStockDisplayClass(stockNum);
+    const displayText = getStockDisplayText(stockNum, isLoading);
+    stockElem.className = `stock-display ${displayClass}`;
+    stockElem.innerHTML = `📊 ${displayText}`;
+    
+    // 更新相关输入框的禁用状态
+    updateQtyInputsStatus(productId, stockNum);
+  }
+  return stockInfo;
+}
+
+// 根据库存更新数量输入框状态
+function updateQtyInputsStatus(productId, stock) {
+  const isOutOfStock = !stock || stock <= 0;
+  
+  // 查找所有关联的输入框
+  document.querySelectorAll(`[data-product-id="${productId}"]`).forEach(input => {
+    if (isOutOfStock) {
+      input.disabled = true;
+      input.value = "0";
+    } else {
+      input.disabled = false;
+    }
+  });
+  
+  // 同时禁用对应的加减按钮
+  document.querySelectorAll(`[data-product-id-btn="${productId}"]`).forEach(btn => {
+    btn.disabled = isOutOfStock;
+  });
+}
+
+// 刷新所有商品库存
+async function refreshAllStock() {
+  const refreshBtn = document.querySelector(".refresh-stock");
+  const originalText = refreshBtn.innerHTML;
+  refreshBtn.innerHTML = "⏳ 刷新中...";
+  
+  const promises = [];
+  
+  cookedProducts.forEach((p, i) => {
+    if (p.isFixed && p.productId) {
+      promises.push(refreshStock(p.productId, `stock_${i}`, p.unit));
+    } else {
+      if (p.productId500) {
+        promises.push(refreshStock(p.productId500, `stock_${i}_500`, "500G"));
+      }
+      if (p.productId1kg) {
+        promises.push(refreshStock(p.productId1kg, `stock_${i}_1kg`, "1KG"));
+      }
+    }
+  });
+  
+  await Promise.all(promises);
+  refreshBtn.innerHTML = originalText;
+  calc(); // 重新计算（可能会禁用某些输入框）
+}
+
+// 下单前检查库存（基于最新缓存）
+async function checkAllStockBeforeSubmit() {
+  let itemsToCheck = [];
+  
+  cookedProducts.forEach((p, i) => {
+    if (p.isFixed) {
+      let qty = parseInt(document.getElementById(`cooked_${i}`)?.value) || 0;
+      if (qty > 0 && p.productId) {
+        const stockInfo = stockCache.get(p.productId);
+        itemsToCheck.push({ 
+          productId: p.productId, 
+          name: p.name, 
+          variant: p.unit, 
+          qty: qty,
+          stock: stockInfo?.stock || 0
+        });
+      }
+    } else {
+      let qty500 = parseInt(document.getElementById(`cooked_${i}_500`)?.value) || 0;
+      let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`)?.value) || 0;
+      if (qty500 > 0 && p.productId500) {
+        const stockInfo = stockCache.get(p.productId500);
+        itemsToCheck.push({ 
+          productId: p.productId500, 
+          name: p.name, 
+          variant: "500G", 
+          qty: qty500,
+          stock: stockInfo?.stock || 0
+        });
+      }
+      if (qty1kg > 0 && p.productId1kg) {
+        const stockInfo = stockCache.get(p.productId1kg);
+        itemsToCheck.push({ 
+          productId: p.productId1kg, 
+          name: p.name, 
+          variant: "1KG", 
+          qty: qty1kg,
+          stock: stockInfo?.stock || 0
+        });
+      }
+    }
+  });
+  
+  if (itemsToCheck.length === 0) {
+    alert("请至少选择一件商品");
+    return false;
+  }
+  
+  for (let item of itemsToCheck) {
+    // 重新验证一次最新库存
+    const freshStock = await fetchStock(item.productId);
+    const currentStock = freshStock?.stock || 0;
+    
+    if (currentStock < item.qty) {
+      alert(`❌ ${item.name} ${item.variant}\n需求数量：${item.qty}\n剩余库存：${currentStock}\n\n库存不足，无法下单！`);
+      // 刷新显示
+      const stockElemId = item.productId.includes("500g") ? 
+        `stock_${cookedProducts.findIndex(p => p.productId500 === item.productId)}_500` :
+        (item.productId.includes("1kg") ? 
+          `stock_${cookedProducts.findIndex(p => p.productId1kg === item.productId)}_1kg` :
+          `stock_${cookedProducts.findIndex(p => p.productId === item.productId)}`);
+      if (stockElemId) refreshStock(item.productId, stockElemId);
+      return false;
+    }
+  }
+  return true;
+}
+
+// 扣减库存
 async function deductStockApi(productId, quantity) {
   try {
     const response = await fetch(API_URL, {
@@ -296,66 +552,6 @@ async function deductStockApi(productId, quantity) {
     console.error("扣减库存失败:", error);
     return { success: false, error: error.toString() };
   }
-}
-
-// 显示库存弹窗
-async function showStockDialog(productName, productId, variant = "") {
-  let displayName = variant ? `${productName} (${variant})` : productName;
-  
-  if (!productId) {
-    alert(`⚠️ ${displayName}\n无法查询库存，请联系客服。`);
-    return;
-  }
-  
-  alert(`🔍 正在查询 ${displayName} 库存...`);
-  const result = await fetchStock(productId);
-  
-  if (result.success) {
-    alert(`✅ ${displayName}\n📦 剩余库存：${result.stock} 个\n可以正常下单！`);
-  } else {
-    alert(`❌ ${displayName}\n${result.error || "库存查询失败，请稍后再试"}`);
-  }
-}
-
-// 下单前检查所有商品库存
-async function checkAllStock() {
-  let itemsToCheck = [];
-  
-  cookedProducts.forEach((p, i) => {
-    if (p.isFixed) {
-      let qty = parseInt(document.getElementById(`cooked_${i}`)?.value) || 0;
-      if (qty > 0 && p.productId) {
-        itemsToCheck.push({ productId: p.productId, name: p.name, variant: p.unit, qty: qty });
-      }
-    } else {
-      let qty500 = parseInt(document.getElementById(`cooked_${i}_500`)?.value) || 0;
-      let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`)?.value) || 0;
-      if (qty500 > 0 && p.productId500) {
-        itemsToCheck.push({ productId: p.productId500, name: p.name, variant: "500G", qty: qty500 });
-      }
-      if (qty1kg > 0 && p.productId1kg) {
-        itemsToCheck.push({ productId: p.productId1kg, name: p.name, variant: "1KG", qty: qty1kg });
-      }
-    }
-  });
-  
-  if (itemsToCheck.length === 0) {
-    alert("请至少选择一件商品");
-    return false;
-  }
-  
-  for (let item of itemsToCheck) {
-    const stockResult = await fetchStock(item.productId);
-    if (!stockResult.success) {
-      alert(`⚠️ 无法验证 ${item.name} ${item.variant} 的库存：${stockResult.error}`);
-      return false;
-    }
-    if (stockResult.stock < item.qty) {
-      alert(`❌ ${item.name} ${item.variant}\n需求数量：${item.qty}\n剩余库存：${stockResult.stock}\n\n库存不足，无法下单！`);
-      return false;
-    }
-  }
-  return true;
 }
 
 // 提交订单后扣减所有商品库存
@@ -386,55 +582,97 @@ async function deductAllStock() {
     if (!result.success) {
       console.error(`扣减失败: ${item.productId}`, result.error);
       allSuccess = false;
+    } else {
+      // 更新本地缓存
+      const cached = stockCache.get(item.productId);
+      if (cached) {
+        cached.stock -= item.quantity;
+        stockCache.set(item.productId, cached);
+      }
     }
   }
   return allSuccess;
 }
 
-// ---------- UI 渲染 & 计算 ----------
-function changeQty(elementId, delta) {
+// ---------- UI 渲染 ----------
+function changeQty(elementId, delta, productId, maxStock) {
   let input = document.getElementById(elementId);
-  if (input) {
+  if (input && !input.disabled) {
     let newVal = (parseInt(input.value) || 0) + delta;
     if (newVal < 0) newVal = 0;
+    // 检查是否超过库存
+    if (maxStock !== undefined && newVal > maxStock) {
+      alert(`⚠️ ${input.getAttribute('data-product-name') || ''} 库存不足，最多可选 ${maxStock} 个`);
+      newVal = maxStock;
+    }
     input.value = newVal;
     calc();
   }
+}
+
+// 获取库存数量
+function getStockByProductId(productId) {
+  const cached = stockCache.get(productId);
+  return cached?.success ? cached.stock : 0;
 }
 
 function renderCookedProducts() {
   let html = "";
   cookedProducts.forEach((p, i) => {
     if (p.isFixed) {
-      html += `<div class="product-card">
-        <div class="product-header" onclick="showStockDialog('${p.name.replace(/'/g, "\\'")}', '${p.productId}', '${p.unit.replace(/'/g, "\\'")}')">
-          <span class="product-name">📦 ${p.name} <span class="stock-badge">🔍 查库存</span></span>
+      const stockInfo = stockCache.get(p.productId);
+      const stockNum = stockInfo?.success ? stockInfo.stock : null;
+      const isLoading = stockLoading.get(p.productId);
+      const displayClass = getStockDisplayClass(stockNum);
+      const displayText = getStockDisplayText(stockNum, isLoading);
+      
+      html += `<div class="product-card" id="product_card_${i}">
+        <div class="product-header">
+          <span class="product-name">
+            📦 ${p.name}
+            <span class="stock-display ${displayClass}" id="stock_${i}">📊 ${displayText}</span>
+          </span>
           <span class="product-price">RM${p.price} / ${p.unit}</span>
         </div>
         <div class="qty-group">
-          <button type="button" onclick="changeQty('cooked_${i}', -1)">−</button>
-          <input type="number" id="cooked_${i}" value="0" min="0" step="1" onchange="calc()">
-          <button type="button" onclick="changeQty('cooked_${i}', 1)">+</button>
+          <button type="button" data-product-id-btn="${p.productId}" onclick="changeQty('cooked_${i}', -1, '${p.productId}', ${stockNum || 0})" ${(!stockNum || stockNum <= 0) ? 'disabled' : ''}>−</button>
+          <input type="number" id="cooked_${i}" value="0" min="0" step="1" onchange="calc()" data-product-id="${p.productId}" data-product-name="${p.name}" ${(!stockNum || stockNum <= 0) ? 'disabled' : ''}>
+          <button type="button" data-product-id-btn="${p.productId}" onclick="changeQty('cooked_${i}', 1, '${p.productId}', ${stockNum || 0})" ${(!stockNum || stockNum <= 0) ? 'disabled' : ''}>+</button>
         </div>
       </div>`;
     } else {
-      html += `<div class="product-card">
-        <div class="product-header" onclick="showStockDialog('${p.name.replace(/'/g, "\\'")}', '${p.productId500}', '500G/1KG')">
-          <span class="product-name">🥩 ${p.name} <span class="stock-badge">📊 查库存</span></span>
+      const stock500 = stockCache.get(p.productId500);
+      const stock1kg = stockCache.get(p.productId1kg);
+      const stockNum500 = stock500?.success ? stock500.stock : null;
+      const stockNum1kg = stock1kg?.success ? stock1kg.stock : null;
+      const isLoading500 = stockLoading.get(p.productId500);
+      const isLoading1kg = stockLoading.get(p.productId1kg);
+      const displayClass500 = getStockDisplayClass(stockNum500);
+      const displayClass1kg = getStockDisplayClass(stockNum1kg);
+      const displayText500 = getStockDisplayText(stockNum500, isLoading500);
+      const displayText1kg = getStockDisplayText(stockNum1kg, isLoading1kg);
+      
+      html += `<div class="product-card" id="product_card_${i}">
+        <div class="product-header">
+          <span class="product-name">
+            🥩 ${p.name}
+          </span>
           <span class="product-price">500G RM${p.price500} | 1KG RM${p.price1kg}</span>
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:6px;">
           <div class="qty-group">
             <span style="font-weight:600;">500G</span>
-            <button type="button" onclick="changeQty('cooked_${i}_500', -1)">−</button>
-            <input type="number" id="cooked_${i}_500" value="0" min="0" onchange="calc()">
-            <button type="button" onclick="changeQty('cooked_${i}_500', 1)">+</button>
+            <span class="stock-display ${displayClass500}" style="font-size:10px;" id="stock_${i}_500">${displayText500}</span>
+            <button type="button" data-product-id-btn="${p.productId500}" onclick="changeQty('cooked_${i}_500', -1, '${p.productId500}', ${stockNum500 || 0})" ${(!stockNum500 || stockNum500 <= 0) ? 'disabled' : ''}>−</button>
+            <input type="number" id="cooked_${i}_500" value="0" min="0" onchange="calc()" data-product-id="${p.productId500}" data-product-name="${p.name} 500G" ${(!stockNum500 || stockNum500 <= 0) ? 'disabled' : ''}>
+            <button type="button" data-product-id-btn="${p.productId500}" onclick="changeQty('cooked_${i}_500', 1, '${p.productId500}', ${stockNum500 || 0})" ${(!stockNum500 || stockNum500 <= 0) ? 'disabled' : ''}>+</button>
           </div>
           <div class="qty-group">
             <span style="font-weight:600;">1KG</span>
-            <button type="button" onclick="changeQty('cooked_${i}_1kg', -1)">−</button>
-            <input type="number" id="cooked_${i}_1kg" value="0" min="0" onchange="calc()">
-            <button type="button" onclick="changeQty('cooked_${i}_1kg', 1)">+</button>
+            <span class="stock-display ${displayClass1kg}" style="font-size:10px;" id="stock_${i}_1kg">${displayText1kg}</span>
+            <button type="button" data-product-id-btn="${p.productId1kg}" onclick="changeQty('cooked_${i}_1kg', -1, '${p.productId1kg}', ${stockNum1kg || 0})" ${(!stockNum1kg || stockNum1kg <= 0) ? 'disabled' : ''}>−</button>
+            <input type="number" id="cooked_${i}_1kg" value="0" min="0" onchange="calc()" data-product-id="${p.productId1kg}" data-product-name="${p.name} 1KG" ${(!stockNum1kg || stockNum1kg <= 0) ? 'disabled' : ''}>
+            <button type="button" data-product-id-btn="${p.productId1kg}" onclick="changeQty('cooked_${i}_1kg', 1, '${p.productId1kg}', ${stockNum1kg || 0})" ${(!stockNum1kg || stockNum1kg <= 0) ? 'disabled' : ''}>+</button>
           </div>
         </div>
       </div>`;
@@ -443,6 +681,7 @@ function renderCookedProducts() {
   document.getElementById("cookedProducts").innerHTML = html;
 }
 
+// 计算总价和运费
 function calc() {
   let total = 0;
   let weight = 0;
@@ -505,7 +744,7 @@ async function submitOrder() {
   }
   
   // 检查库存
-  const stockOk = await checkAllStock();
+  const stockOk = await checkAllStockBeforeSubmit();
   if (!stockOk) return;
   
   const btn = document.getElementById("submitBtn");
@@ -589,11 +828,16 @@ async function submitOrder() {
   reader.readAsDataURL(file);
 }
 
-// 初始化
+// 初始化页面：渲染商品 -> 加载库存
+function init() {
+  renderCookedProducts();
+  // 加载所有库存
+  refreshAllStock();
+}
+
 document.getElementById("delivery").addEventListener("change", calc);
 document.getElementById("submitBtn").onclick = submitOrder;
-renderCookedProducts();
-calc();
+init();
 </script>
 </body>
 </html>
