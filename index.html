@@ -244,12 +244,25 @@
   .refresh-stock:hover {
     background: #d4c4b2;
   }
+  .error-banner {
+    background: #ffebee;
+    color: #c62828;
+    padding: 10px 15px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
 <div class="container">
   <h2>🍖 福满家</h2>
   <div class="sub">手工肉干 · 传统风味 · 新鲜制作</div>
+
+  <div id="apiError" class="error-banner" style="display:none;">
+    ⚠️ 无法连接到服务器，请检查网络或联系管理员
+  </div>
 
   <h3>📋 客户资料</h3>
   <label>姓名 <span class="required-star">*</span></label>
@@ -287,10 +300,14 @@
 </div>
 
 <script>
-// ======================== 配置 ========================
-const API_URL = "https://script.google.com/macros/s/AKfycbw8m7IPlF1_Vv5-Z0WzvFsQQXhTPh9jU9rVDPVA4Wbhp298m3wvGGG4xMZMtUxyb4M8Jg/exec";
+// ======================== 请在这里修改为您的 Apps Script Web App URL ========================
+// 部署后，把下面的 URL 替换成您的
+const API_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
 
-// ======================== 商品数据（带 productId） ========================
+// 测试模式：如果无法连接，可以先用模拟数据测试
+const USE_MOCK_MODE = false;  // 改为 false 使用真实API
+
+// ======================== 商品数据 ========================
 const cookedProducts = [
   { 
     name: "猪肉碎肉干 Pork Meat (Minced Meat)", 
@@ -343,15 +360,36 @@ const cookedProducts = [
   }
 ];
 
-// 缓存库存数据
 let stockCache = new Map();
 let stockLoading = new Map();
 
-// ---------- 库存 API ----------
+// 模拟库存数据（测试用）
+const mockStockData = new Map([
+  ["猪肉碎肉干 Pork Meat (Minced Meat)_500g", { stock: 50 }],
+  ["猪肉碎肉干 Pork Meat (Minced Meat)_1kg", { stock: 25 }],
+  ["鸡肉碎肉干 Chicken Meat (Minced Meat)_500g", { stock: 30 }],
+  ["鸡肉碎肉干 Chicken Meat (Minced Meat)_1kg", { stock: 15 }],
+  ["切片肉干 BBQ Sliced Pork Meat_500g", { stock: 20 }],
+  ["切片肉干 BBQ Sliced Pork Meat_1kg", { stock: 10 }],
+  ["帝王肉干 Signature BBQ Bacon_500g", { stock: 15 }],
+  ["帝王肉干 Signature BBQ Bacon_1kg", { stock: 8 }],
+  ["精品肉松 Pork Floss", { stock: 12 }],
+  ["黄金辣味虾米卷 Spicy Spring Roll", { stock: 10 }],
+  ["炭烧鸡蛋饼 Traditional Kuih Kapit", { stock: 8 }],
+  ["咸蛋鱼皮 Salted Egg Fish Skin", { stock: 20 }],
+  ["麻辣鱼皮 Mala Fish Skin", { stock: 20 }]
+]);
+
 async function fetchStock(productId) {
   if (!productId) return null;
   
-  // 防止重复请求
+  // 模拟模式
+  if (USE_MOCK_MODE) {
+    await new Promise(r => setTimeout(r, 300));
+    const mockData = mockStockData.get(productId);
+    return { success: true, stock: mockData?.stock || 10 };
+  }
+  
   if (stockLoading.get(productId)) {
     return stockCache.get(productId);
   }
@@ -360,31 +398,27 @@ async function fetchStock(productId) {
   
   try {
     const url = `${API_URL}?action=getStock&productId=${encodeURIComponent(productId)}`;
+    console.log("Fetching stock from:", url);
     const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     
     if (data.success) {
-      const stockInfo = {
-        stock: data.stock,
-        success: true,
-        lastUpdate: Date.now()
-      };
+      const stockInfo = { success: true, stock: data.stock };
       stockCache.set(productId, stockInfo);
       return stockInfo;
     } else {
-      stockCache.set(productId, { success: false, stock: 0, error: data.error });
       return { success: false, stock: 0, error: data.error };
     }
   } catch (error) {
     console.error("库存查询失败:", error);
-    stockCache.set(productId, { success: false, stock: 0, error: error.toString() });
+    document.getElementById("apiError").style.display = "block";
     return { success: false, stock: 0, error: error.toString() };
   } finally {
     stockLoading.set(productId, false);
   }
 }
 
-// 获取库存显示样式
 function getStockDisplayClass(stock) {
   if (stock === null || stock === undefined) return "loading";
   if (stock <= 0) return "out";
@@ -393,7 +427,6 @@ function getStockDisplayClass(stock) {
   return "high";
 }
 
-// 获取库存显示文字
 function getStockDisplayText(stock, isLoading) {
   if (isLoading) return "⏳ 查询中...";
   if (stock === null || stock === undefined) return "❓ 无法获取";
@@ -402,8 +435,7 @@ function getStockDisplayText(stock, isLoading) {
   return `✅ 库存 ${stock} 个`;
 }
 
-// 刷新单个商品库存
-async function refreshStock(productId, elementId, variant = "") {
+async function refreshStock(productId, elementId) {
   const stockInfo = await fetchStock(productId);
   const stockElem = document.getElementById(elementId);
   if (stockElem) {
@@ -413,18 +445,13 @@ async function refreshStock(productId, elementId, variant = "") {
     const displayText = getStockDisplayText(stockNum, isLoading);
     stockElem.className = `stock-display ${displayClass}`;
     stockElem.innerHTML = `📊 ${displayText}`;
-    
-    // 更新相关输入框的禁用状态
     updateQtyInputsStatus(productId, stockNum);
   }
   return stockInfo;
 }
 
-// 根据库存更新数量输入框状态
 function updateQtyInputsStatus(productId, stock) {
   const isOutOfStock = !stock || stock <= 0;
-  
-  // 查找所有关联的输入框
   document.querySelectorAll(`[data-product-id="${productId}"]`).forEach(input => {
     if (isOutOfStock) {
       input.disabled = true;
@@ -433,176 +460,45 @@ function updateQtyInputsStatus(productId, stock) {
       input.disabled = false;
     }
   });
-  
-  // 同时禁用对应的加减按钮
   document.querySelectorAll(`[data-product-id-btn="${productId}"]`).forEach(btn => {
     btn.disabled = isOutOfStock;
   });
 }
 
-// 刷新所有商品库存
 async function refreshAllStock() {
   const refreshBtn = document.querySelector(".refresh-stock");
   const originalText = refreshBtn.innerHTML;
   refreshBtn.innerHTML = "⏳ 刷新中...";
   
   const promises = [];
-  
   cookedProducts.forEach((p, i) => {
     if (p.isFixed && p.productId) {
-      promises.push(refreshStock(p.productId, `stock_${i}`, p.unit));
+      promises.push(refreshStock(p.productId, `stock_${i}`));
     } else {
       if (p.productId500) {
-        promises.push(refreshStock(p.productId500, `stock_${i}_500`, "500G"));
+        promises.push(refreshStock(p.productId500, `stock_${i}_500`));
       }
       if (p.productId1kg) {
-        promises.push(refreshStock(p.productId1kg, `stock_${i}_1kg`, "1KG"));
+        promises.push(refreshStock(p.productId1kg, `stock_${i}_1kg`));
       }
     }
   });
   
   await Promise.all(promises);
   refreshBtn.innerHTML = originalText;
-  calc(); // 重新计算（可能会禁用某些输入框）
+  calc();
 }
 
-// 下单前检查库存（基于最新缓存）
-async function checkAllStockBeforeSubmit() {
-  let itemsToCheck = [];
-  
-  cookedProducts.forEach((p, i) => {
-    if (p.isFixed) {
-      let qty = parseInt(document.getElementById(`cooked_${i}`)?.value) || 0;
-      if (qty > 0 && p.productId) {
-        const stockInfo = stockCache.get(p.productId);
-        itemsToCheck.push({ 
-          productId: p.productId, 
-          name: p.name, 
-          variant: p.unit, 
-          qty: qty,
-          stock: stockInfo?.stock || 0
-        });
-      }
-    } else {
-      let qty500 = parseInt(document.getElementById(`cooked_${i}_500`)?.value) || 0;
-      let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`)?.value) || 0;
-      if (qty500 > 0 && p.productId500) {
-        const stockInfo = stockCache.get(p.productId500);
-        itemsToCheck.push({ 
-          productId: p.productId500, 
-          name: p.name, 
-          variant: "500G", 
-          qty: qty500,
-          stock: stockInfo?.stock || 0
-        });
-      }
-      if (qty1kg > 0 && p.productId1kg) {
-        const stockInfo = stockCache.get(p.productId1kg);
-        itemsToCheck.push({ 
-          productId: p.productId1kg, 
-          name: p.name, 
-          variant: "1KG", 
-          qty: qty1kg,
-          stock: stockInfo?.stock || 0
-        });
-      }
-    }
-  });
-  
-  if (itemsToCheck.length === 0) {
-    alert("请至少选择一件商品");
-    return false;
-  }
-  
-  for (let item of itemsToCheck) {
-    // 重新验证一次最新库存
-    const freshStock = await fetchStock(item.productId);
-    const currentStock = freshStock?.stock || 0;
-    
-    if (currentStock < item.qty) {
-      alert(`❌ ${item.name} ${item.variant}\n需求数量：${item.qty}\n剩余库存：${currentStock}\n\n库存不足，无法下单！`);
-      // 刷新显示
-      const stockElemId = item.productId.includes("500g") ? 
-        `stock_${cookedProducts.findIndex(p => p.productId500 === item.productId)}_500` :
-        (item.productId.includes("1kg") ? 
-          `stock_${cookedProducts.findIndex(p => p.productId1kg === item.productId)}_1kg` :
-          `stock_${cookedProducts.findIndex(p => p.productId === item.productId)}`);
-      if (stockElemId) refreshStock(item.productId, stockElemId);
-      return false;
-    }
-  }
-  return true;
-}
-
-// 扣减库存
-async function deductStockApi(productId, quantity) {
-  try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "deductStock",
-        productId: productId,
-        quantity: quantity
-      })
-    });
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("扣减库存失败:", error);
-    return { success: false, error: error.toString() };
-  }
-}
-
-// 提交订单后扣减所有商品库存
-async function deductAllStock() {
-  let itemsToDeduct = [];
-  
-  cookedProducts.forEach((p, i) => {
-    if (p.isFixed) {
-      let qty = parseInt(document.getElementById(`cooked_${i}`)?.value) || 0;
-      if (qty > 0 && p.productId) {
-        itemsToDeduct.push({ productId: p.productId, quantity: qty });
-      }
-    } else {
-      let qty500 = parseInt(document.getElementById(`cooked_${i}_500`)?.value) || 0;
-      let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`)?.value) || 0;
-      if (qty500 > 0 && p.productId500) {
-        itemsToDeduct.push({ productId: p.productId500, quantity: qty500 });
-      }
-      if (qty1kg > 0 && p.productId1kg) {
-        itemsToDeduct.push({ productId: p.productId1kg, quantity: qty1kg });
-      }
-    }
-  });
-  
-  let allSuccess = true;
-  for (let item of itemsToDeduct) {
-    const result = await deductStockApi(item.productId, item.quantity);
-    if (!result.success) {
-      console.error(`扣减失败: ${item.productId}`, result.error);
-      allSuccess = false;
-    } else {
-      // 更新本地缓存
-      const cached = stockCache.get(item.productId);
-      if (cached) {
-        cached.stock -= item.quantity;
-        stockCache.set(item.productId, cached);
-      }
-    }
-  }
-  return allSuccess;
-}
-
-// ---------- UI 渲染 ----------
-function changeQty(elementId, delta, productId, maxStock) {
+function changeQty(elementId, delta, productId) {
   let input = document.getElementById(elementId);
   if (input && !input.disabled) {
     let newVal = (parseInt(input.value) || 0) + delta;
     if (newVal < 0) newVal = 0;
-    // 检查是否超过库存
+    
+    const stockInfo = stockCache.get(productId);
+    const maxStock = stockInfo?.success ? stockInfo.stock : 999;
     if (maxStock !== undefined && newVal > maxStock) {
-      alert(`⚠️ ${input.getAttribute('data-product-name') || ''} 库存不足，最多可选 ${maxStock} 个`);
+      alert(`⚠️ 库存不足，最多可选 ${maxStock} 个`);
       newVal = maxStock;
     }
     input.value = newVal;
@@ -610,10 +506,9 @@ function changeQty(elementId, delta, productId, maxStock) {
   }
 }
 
-// 获取库存数量
 function getStockByProductId(productId) {
   const cached = stockCache.get(productId);
-  return cached?.success ? cached.stock : 0;
+  return cached?.success ? cached.stock : 999;
 }
 
 function renderCookedProducts() {
@@ -626,7 +521,7 @@ function renderCookedProducts() {
       const displayClass = getStockDisplayClass(stockNum);
       const displayText = getStockDisplayText(stockNum, isLoading);
       
-      html += `<div class="product-card" id="product_card_${i}">
+      html += `<div class="product-card">
         <div class="product-header">
           <span class="product-name">
             📦 ${p.name}
@@ -635,9 +530,9 @@ function renderCookedProducts() {
           <span class="product-price">RM${p.price} / ${p.unit}</span>
         </div>
         <div class="qty-group">
-          <button type="button" data-product-id-btn="${p.productId}" onclick="changeQty('cooked_${i}', -1, '${p.productId}', ${stockNum || 0})" ${(!stockNum || stockNum <= 0) ? 'disabled' : ''}>−</button>
+          <button data-product-id-btn="${p.productId}" onclick="changeQty('cooked_${i}', -1, '${p.productId}')" ${(!stockNum || stockNum <= 0) ? 'disabled' : ''}>−</button>
           <input type="number" id="cooked_${i}" value="0" min="0" step="1" onchange="calc()" data-product-id="${p.productId}" data-product-name="${p.name}" ${(!stockNum || stockNum <= 0) ? 'disabled' : ''}>
-          <button type="button" data-product-id-btn="${p.productId}" onclick="changeQty('cooked_${i}', 1, '${p.productId}', ${stockNum || 0})" ${(!stockNum || stockNum <= 0) ? 'disabled' : ''}>+</button>
+          <button data-product-id-btn="${p.productId}" onclick="changeQty('cooked_${i}', 1, '${p.productId}')" ${(!stockNum || stockNum <= 0) ? 'disabled' : ''}>+</button>
         </div>
       </div>`;
     } else {
@@ -652,27 +547,25 @@ function renderCookedProducts() {
       const displayText500 = getStockDisplayText(stockNum500, isLoading500);
       const displayText1kg = getStockDisplayText(stockNum1kg, isLoading1kg);
       
-      html += `<div class="product-card" id="product_card_${i}">
+      html += `<div class="product-card">
         <div class="product-header">
-          <span class="product-name">
-            🥩 ${p.name}
-          </span>
+          <span class="product-name">🥩 ${p.name}</span>
           <span class="product-price">500G RM${p.price500} | 1KG RM${p.price1kg}</span>
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:6px;">
           <div class="qty-group">
             <span style="font-weight:600;">500G</span>
             <span class="stock-display ${displayClass500}" style="font-size:10px;" id="stock_${i}_500">${displayText500}</span>
-            <button type="button" data-product-id-btn="${p.productId500}" onclick="changeQty('cooked_${i}_500', -1, '${p.productId500}', ${stockNum500 || 0})" ${(!stockNum500 || stockNum500 <= 0) ? 'disabled' : ''}>−</button>
+            <button data-product-id-btn="${p.productId500}" onclick="changeQty('cooked_${i}_500', -1, '${p.productId500}')" ${(!stockNum500 || stockNum500 <= 0) ? 'disabled' : ''}>−</button>
             <input type="number" id="cooked_${i}_500" value="0" min="0" onchange="calc()" data-product-id="${p.productId500}" data-product-name="${p.name} 500G" ${(!stockNum500 || stockNum500 <= 0) ? 'disabled' : ''}>
-            <button type="button" data-product-id-btn="${p.productId500}" onclick="changeQty('cooked_${i}_500', 1, '${p.productId500}', ${stockNum500 || 0})" ${(!stockNum500 || stockNum500 <= 0) ? 'disabled' : ''}>+</button>
+            <button data-product-id-btn="${p.productId500}" onclick="changeQty('cooked_${i}_500', 1, '${p.productId500}')" ${(!stockNum500 || stockNum500 <= 0) ? 'disabled' : ''}>+</button>
           </div>
           <div class="qty-group">
             <span style="font-weight:600;">1KG</span>
             <span class="stock-display ${displayClass1kg}" style="font-size:10px;" id="stock_${i}_1kg">${displayText1kg}</span>
-            <button type="button" data-product-id-btn="${p.productId1kg}" onclick="changeQty('cooked_${i}_1kg', -1, '${p.productId1kg}', ${stockNum1kg || 0})" ${(!stockNum1kg || stockNum1kg <= 0) ? 'disabled' : ''}>−</button>
+            <button data-product-id-btn="${p.productId1kg}" onclick="changeQty('cooked_${i}_1kg', -1, '${p.productId1kg}')" ${(!stockNum1kg || stockNum1kg <= 0) ? 'disabled' : ''}>−</button>
             <input type="number" id="cooked_${i}_1kg" value="0" min="0" onchange="calc()" data-product-id="${p.productId1kg}" data-product-name="${p.name} 1KG" ${(!stockNum1kg || stockNum1kg <= 0) ? 'disabled' : ''}>
-            <button type="button" data-product-id-btn="${p.productId1kg}" onclick="changeQty('cooked_${i}_1kg', 1, '${p.productId1kg}', ${stockNum1kg || 0})" ${(!stockNum1kg || stockNum1kg <= 0) ? 'disabled' : ''}>+</button>
+            <button data-product-id-btn="${p.productId1kg}" onclick="changeQty('cooked_${i}_1kg', 1, '${p.productId1kg}')" ${(!stockNum1kg || stockNum1kg <= 0) ? 'disabled' : ''}>+</button>
           </div>
         </div>
       </div>`;
@@ -681,7 +574,6 @@ function renderCookedProducts() {
   document.getElementById("cookedProducts").innerHTML = html;
 }
 
-// 计算总价和运费
 function calc() {
   let total = 0;
   let weight = 0;
@@ -713,7 +605,38 @@ function calc() {
   document.getElementById("total").innerText = (total + ship).toFixed(2);
 }
 
-// 提交订单
+async function checkAllStockBeforeSubmit() {
+  let itemsToCheck = [];
+  cookedProducts.forEach((p, i) => {
+    if (p.isFixed) {
+      let qty = parseInt(document.getElementById(`cooked_${i}`)?.value) || 0;
+      if (qty > 0 && p.productId) {
+        const stockInfo = stockCache.get(p.productId);
+        itemsToCheck.push({ productId: p.productId, name: p.name, qty: qty, stock: stockInfo?.stock || 0 });
+      }
+    } else {
+      let qty500 = parseInt(document.getElementById(`cooked_${i}_500`)?.value) || 0;
+      let qty1kg = parseInt(document.getElementById(`cooked_${i}_1kg`)?.value) || 0;
+      if (qty500 > 0 && p.productId500) {
+        const stockInfo = stockCache.get(p.productId500);
+        itemsToCheck.push({ productId: p.productId500, name: `${p.name} 500G`, qty: qty500, stock: stockInfo?.stock || 0 });
+      }
+      if (qty1kg > 0 && p.productId1kg) {
+        const stockInfo = stockCache.get(p.productId1kg);
+        itemsToCheck.push({ productId: p.productId1kg, name: `${p.name} 1KG`, qty: qty1kg, stock: stockInfo?.stock || 0 });
+      }
+    }
+  });
+  
+  for (let item of itemsToCheck) {
+    if (item.stock < item.qty) {
+      alert(`❌ ${item.name}\n需求数量：${item.qty}\n剩余库存：${item.stock}\n\n库存不足！`);
+      return false;
+    }
+  }
+  return true;
+}
+
 let submittingFlag = false;
 
 async function submitOrder() {
@@ -743,7 +666,6 @@ async function submitOrder() {
     return;
   }
   
-  // 检查库存
   const stockOk = await checkAllStockBeforeSubmit();
   if (!stockOk) return;
   
@@ -752,7 +674,6 @@ async function submitOrder() {
   btn.innerHTML = '<span class="loading-spinner"></span> 提交订单中...';
   submittingFlag = true;
   
-  // 整理商品清单
   let orderProducts = [];
   cookedProducts.forEach((p, i) => {
     if (p.isFixed) {
@@ -769,13 +690,6 @@ async function submitOrder() {
   const reader = new FileReader();
   reader.onload = async function(evt) {
     try {
-      // 扣减库存
-      const deductResult = await deductAllStock();
-      if (!deductResult) {
-        console.warn("部分商品库存扣减失败");
-      }
-      
-      // 提交订单
       const payload = {
         name: name,
         phone: phone,
@@ -790,22 +704,29 @@ async function submitOrder() {
         freeGifts: ""
       };
       
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      const data = await response.json();
+      let response;
+      if (USE_MOCK_MODE) {
+        await new Promise(r => setTimeout(r, 1000));
+        response = { status: "success", orderId: "MOCK001" };
+      } else {
+        const fetchRes = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        response = await fetchRes.json();
+      }
       
-      if (data.status === "success") {
+      if (response.status === "success") {
         document.body.innerHTML = `<div style="max-width:600px; margin:50px auto; text-align:center; background:white; border-radius:28px; padding:32px;">
           <h2 style="color:#b33c1c;">🎉 下单成功！</h2>
-          <p>订单编号：<strong style="font-size:20px;">${data.orderId}</strong></p>
+          <p>订单编号：<strong style="font-size:20px;">${response.orderId}</strong></p>
           <p>我们会尽快处理您的订单</p>
           <p style="font-size:13px; color:#a16241;">请保留订单号以备查询</p>
+          <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:#b33c1c; color:white; border:none; border-radius:20px;">继续下单</button>
         </div>`;
       } else {
-        alert("提交失败：" + (data.message || "未知错误"));
+        alert("提交失败：" + (response.message || "未知错误"));
         btn.disabled = false;
         btn.innerHTML = "📦 提交订单";
         submittingFlag = false;
@@ -828,10 +749,8 @@ async function submitOrder() {
   reader.readAsDataURL(file);
 }
 
-// 初始化页面：渲染商品 -> 加载库存
 function init() {
   renderCookedProducts();
-  // 加载所有库存
   refreshAllStock();
 }
 
