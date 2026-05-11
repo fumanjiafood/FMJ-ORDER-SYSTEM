@@ -18,9 +18,8 @@
   .product-name { font-weight: 700; color: #5a3e2e; }
   .stock-display { font-size: 11px; padding: 3px 8px; border-radius: 20px; display: inline-block; margin-right: 10px; }
   .stock-display.high { background: #e8f5e9; color: #2e7d32; }
-  .stock-display.low { background: #ffebee; color: #c62828; }
+  .stock-display.low { background: #fff3e0; color: #ef6c00; }
   .stock-display.out { background: #ffcdd2; color: #b71c1c; }
-  .stock-display.loading { background: #f0f0f0; color: #999; }
   .qty-group { display: flex; align-items: center; gap: 8px; background: #f9f5ef; padding: 6px 12px; border-radius: 40px; margin-top: 8px; }
   .qty-group button { width: 32px; background: #e9ddd0; border: none; border-radius: 30px; font-size: 18px; cursor: pointer; }
   .qty-group button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -40,7 +39,7 @@
 <div class="container">
   <h2>🍖 福满家</h2>
   <div class="sub">手工肉干 · 传统风味 · 新鲜制作</div>
-  <div id="apiError" class="error-banner">⚠️ 无法连接到服务器，正在使用模拟数据</div>
+  <div id="apiError" class="error-banner">⚠️ 无法连接到服务器</div>
 
   <h3>📋 客户资料</h3>
   <label>姓名 <span class="required-star">*</span></label>
@@ -57,7 +56,7 @@
     <option value="邮寄">邮寄 (按重量计算)</option>
   </select>
 
-  <h3>🍖 商品列表 <span class="refresh-stock" onclick="refreshAllStock()">🔄 刷新库存</span></h3>
+  <h3>🍖 商品列表 <span class="refresh-stock" onclick="loadAllStocks()">🔄 刷新库存</span></h3>
   <div id="productList">加载中...</div>
 
   <h3>📝 备注</h3>
@@ -76,71 +75,42 @@
 </div>
 
 <script>
-// ======================== 请替换为您的 Apps Script URL ========================
-const API_URL = "https://script.google.com/macros/s/AKfycbxLELjdgSBLGfVtVUzNyrjDbbEvARe-8la4wH9lv599f09cGPl7RnMGL8ksq0zO8kwRMA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxTQeNlxs-piQbYdtC4t3XIVCWHOs8cV434f2uwGiKGCiuHqU0NdnBY3IQonCU7E29TDg/exec";
 
-// 模拟库存数据（当API不可用时使用）
-const MOCK_STOCKS = {
-  "猪肉碎肉干 Pork Meat (Minced Meat) 500G": 33,
-  "猪肉碎肉干 Pork Meat (Minced Meat) 1KG": 16,
-  "鸡肉碎肉干 Chicken Meat (Minced Meat) 500G": 56,
-  "鸡肉碎肉干 Chicken Meat (Minced Meat) 1KG": 28,
-  "切片肉干 BBQ Sliced Pork Meat 500G": 33,
-  "切片肉干 BBQ Sliced Pork Meat 1KG": 16,
-  "帝王肉干 Signature BBQ Bacon 500G": 2,
-  "帝王肉干 Signature BBQ Bacon 1KG": 1,
-  "精品肉松 Pork Floss (200G/Tin)": 318,
-  "黄金辣味虾米卷 Spicy Spring Roll (220G/Tin)": 17,
-  "炭烧鸡蛋饼 Traditional Kuih Kapit (340G/Tin)": 0,
-  "咸蛋鱼皮 Salted Egg Fish Skin (100G/Pkt)": 0,
-  "麻辣鱼皮 Mala Fish Skin (100G/Pkt)": 625
-};
-
+// 商品列表：使用数字ID
 const products = [
-  { name: "猪肉碎肉干 Pork Meat (Minced Meat)", price500: 55, price1kg: 108 },
-  { name: "鸡肉碎肉干 Chicken Meat (Minced Meat)", price500: 55, price1kg: 108 },
-  { name: "切片肉干 BBQ Sliced Pork Meat", price500: 70, price1kg: 138 },
-  { name: "帝王肉干 Signature BBQ Bacon", price500: 95, price1kg: 188 },
-  { name: "精品肉松 Pork Floss", price: 30, unit: "200G/Tin", isFixed: true },
-  { name: "黄金辣味虾米卷 Spicy Spring Roll", price: 22, unit: "220G/Tin", isFixed: true },
-  { name: "炭烧鸡蛋饼 Traditional Kuih Kapit", price: 30, unit: "340G/Tin", isFixed: true },
-  { name: "咸蛋鱼皮 Salted Egg Fish Skin", price: 23, unit: "100G/Pkt", isFixed: true },
-  { name: "麻辣鱼皮 Mala Fish Skin", price: 23, unit: "100G/Pkt", isFixed: true }
+  { id: 1, name: "猪肉碎肉干 Pork Meat (Minced Meat)", spec: "500G", price: 55 },
+  { id: 2, name: "猪肉碎肉干 Pork Meat (Minced Meat)", spec: "1KG", price: 108 },
+  { id: 3, name: "鸡肉碎肉干 Chicken Meat (Minced Meat)", spec: "500G", price: 55 },
+  { id: 4, name: "鸡肉碎肉干 Chicken Meat (Minced Meat)", spec: "1KG", price: 108 },
+  { id: 5, name: "切片肉干 BBQ Sliced Pork Meat", spec: "500G", price: 70 },
+  { id: 6, name: "切片肉干 BBQ Sliced Pork Meat", spec: "1KG", price: 138 },
+  { id: 7, name: "帝王肉干 Signature BBQ Bacon", spec: "500G", price: 95 },
+  { id: 8, name: "帝王肉干 Signature BBQ Bacon", spec: "1KG", price: 188 },
+  { id: 9, name: "精品肉松 Pork Floss", spec: "200G/Tin", price: 30, isFixed: true },
+  { id: 10, name: "黄金辣味虾米卷 Spicy Spring Roll", spec: "220G/Tin", price: 22, isFixed: true },
+  { id: 11, name: "炭烧鸡蛋饼 Traditional Kuih Kapit", spec: "340G/Tin", price: 30, isFixed: true },
+  { id: 12, name: "咸蛋鱼皮 Salted Egg Fish Skin", spec: "100G/Pkt", price: 23, isFixed: true },
+  { id: 13, name: "麻辣鱼皮 Mala Fish Skin", spec: "100G/Pkt", price: 23, isFixed: true }
 ];
 
-let stockCache = {};
-let useMock = false;
+let stocks = {};
 
-async function getStock(productFullName) {
-  if (useMock) {
-    return MOCK_STOCKS[productFullName] || 0;
-  }
-  
+async function getStock(id) {
   try {
-    let url = `${API_URL}?productName=${encodeURIComponent(productFullName)}`;
-    let resp = await fetch(url);
+    let resp = await fetch(`${API_URL}?id=${id}`);
     let data = await resp.json();
     if (data.success) return data.stock;
     return 0;
   } catch(e) {
-    console.log("API失败，使用模拟数据");
-    useMock = true;
     document.getElementById("apiError").style.display = "block";
-    return MOCK_STOCKS[productFullName] || 0;
+    return 0;
   }
 }
 
 async function loadAllStocks() {
   for (let p of products) {
-    if (p.isFixed) {
-      let stock = await getStock(p.name + " (" + p.unit + ")");
-      stockCache[p.name] = stock;
-    } else {
-      let stock500 = await getStock(p.name + " 500G");
-      let stock1kg = await getStock(p.name + " 1KG");
-      stockCache[p.name + "_500"] = stock500;
-      stockCache[p.name + "_1kg"] = stock1kg;
-    }
+    stocks[p.id] = await getStock(p.id);
   }
   renderProducts();
   calcTotal();
@@ -148,54 +118,59 @@ async function loadAllStocks() {
 
 function renderProducts() {
   let html = "";
-  products.forEach((p, idx) => {
-    if (p.isFixed) {
-      let stock = stockCache[p.name] || 0;
-      let stockClass = stock <= 0 ? "out" : stock <= 10 ? "low" : "high";
-      let stockText = stock <= 0 ? "❌ 缺货" : stock <= 10 ? `⚠️ 仅剩 ${stock}` : `✅ 库存 ${stock}`;
-      html += `<div class="product-card">
-        <div class="product-header">
-          <span class="product-name">📦 ${p.name}</span>
-          <span class="product-price">RM${p.price} / ${p.unit}</span>
-        </div>
-        <div><span class="stock-display ${stockClass}">📊 ${stockText}</span></div>
+  // 按类别分组显示
+  let meat500 = products.filter(p => p.id <= 8 && p.spec === "500G");
+  let meat1kg = products.filter(p => p.id <= 8 && p.spec === "1KG");
+  let fixed = products.filter(p => p.isFixed);
+  
+  for (let i = 0; i < meat500.length; i++) {
+    let p500 = meat500[i];
+    let p1kg = meat1kg[i];
+    let stock500 = stocks[p500.id] || 0;
+    let stock1kg = stocks[p1kg.id] || 0;
+    
+    html += `<div class="product-card">
+      <div class="product-header">
+        <span class="product-name">🥩 ${p500.name}</span>
+        <span class="product-price">500G RM${p500.price} | 1KG RM${p1kg.price}</span>
+      </div>
+      <div>
+        <span class="stock-display ${stock500 <= 0 ? 'out' : stock500 <= 10 ? 'low' : 'high'}">📊 500G: ${stock500 <= 0 ? '缺货' : '库存 ' + stock500}</span>
+        <span class="stock-display ${stock1kg <= 0 ? 'out' : stock1kg <= 10 ? 'low' : 'high'}">📊 1KG: ${stock1kg <= 0 ? '缺货' : '库存 ' + stock1kg}</span>
+      </div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
         <div class="qty-group">
-          <button onclick="changeQty('qty_${idx}', -1, ${stock})" ${stock <= 0 ? 'disabled' : ''}>−</button>
-          <input type="number" id="qty_${idx}" value="0" min="0" max="${stock}" onchange="calcTotal()" ${stock <= 0 ? 'disabled' : ''}>
-          <button onclick="changeQty('qty_${idx}', 1, ${stock})" ${stock <= 0 ? 'disabled' : ''}>+</button>
+          <span>500G</span>
+          <button onclick="changeQty('qty_${p500.id}', -1, ${stock500})" ${stock500 <= 0 ? 'disabled' : ''}>−</button>
+          <input type="number" id="qty_${p500.id}" value="0" min="0" max="${stock500}" onchange="calcTotal()" ${stock500 <= 0 ? 'disabled' : ''}>
+          <button onclick="changeQty('qty_${p500.id}', 1, ${stock500})" ${stock500 <= 0 ? 'disabled' : ''}>+</button>
         </div>
-      </div>`;
-    } else {
-      let stock500 = stockCache[p.name + "_500"] || 0;
-      let stock1kg = stockCache[p.name + "_1kg"] || 0;
-      let stock500Class = stock500 <= 0 ? "out" : stock500 <= 10 ? "low" : "high";
-      let stock1kgClass = stock1kg <= 0 ? "out" : stock1kg <= 10 ? "low" : "high";
-      html += `<div class="product-card">
-        <div class="product-header">
-          <span class="product-name">🥩 ${p.name}</span>
-          <span class="product-price">500G RM${p.price500} | 1KG RM${p.price1kg}</span>
+        <div class="qty-group">
+          <span>1KG</span>
+          <button onclick="changeQty('qty_${p1kg.id}', -1, ${stock1kg})" ${stock1kg <= 0 ? 'disabled' : ''}>−</button>
+          <input type="number" id="qty_${p1kg.id}" value="0" min="0" max="${stock1kg}" onchange="calcTotal()" ${stock1kg <= 0 ? 'disabled' : ''}>
+          <button onclick="changeQty('qty_${p1kg.id}', 1, ${stock1kg})" ${stock1kg <= 0 ? 'disabled' : ''}>+</button>
         </div>
-        <div>
-          <span class="stock-display ${stock500Class}">📊 500G: ${stock500 <= 0 ? '缺货' : stock500 <= 10 ? '仅剩' + stock500 : '库存' + stock500}</span>
-          <span class="stock-display ${stock1kgClass}">📊 1KG: ${stock1kg <= 0 ? '缺货' : stock1kg <= 10 ? '仅剩' + stock1kg : '库存' + stock1kg}</span>
-        </div>
-        <div style="display:flex; gap:12px; flex-wrap:wrap;">
-          <div class="qty-group">
-            <span>500G</span>
-            <button onclick="changeQty('qty_${idx}_500', -1, ${stock500})" ${stock500 <= 0 ? 'disabled' : ''}>−</button>
-            <input type="number" id="qty_${idx}_500" value="0" min="0" max="${stock500}" onchange="calcTotal()" ${stock500 <= 0 ? 'disabled' : ''}>
-            <button onclick="changeQty('qty_${idx}_500', 1, ${stock500})" ${stock500 <= 0 ? 'disabled' : ''}>+</button>
-          </div>
-          <div class="qty-group">
-            <span>1KG</span>
-            <button onclick="changeQty('qty_${idx}_1kg', -1, ${stock1kg})" ${stock1kg <= 0 ? 'disabled' : ''}>−</button>
-            <input type="number" id="qty_${idx}_1kg" value="0" min="0" max="${stock1kg}" onchange="calcTotal()" ${stock1kg <= 0 ? 'disabled' : ''}>
-            <button onclick="changeQty('qty_${idx}_1kg', 1, ${stock1kg})" ${stock1kg <= 0 ? 'disabled' : ''}>+</button>
-          </div>
-        </div>
-      </div>`;
-    }
-  });
+      </div>
+    </div>`;
+  }
+  
+  for (let p of fixed) {
+    let stock = stocks[p.id] || 0;
+    html += `<div class="product-card">
+      <div class="product-header">
+        <span class="product-name">📦 ${p.name}</span>
+        <span class="product-price">RM${p.price} / ${p.spec}</span>
+      </div>
+      <div><span class="stock-display ${stock <= 0 ? 'out' : stock <= 10 ? 'low' : 'high'}">📊 ${stock <= 0 ? '❌ 缺货' : '✅ 库存 ' + stock}</span></div>
+      <div class="qty-group">
+        <button onclick="changeQty('qty_${p.id}', -1, ${stock})" ${stock <= 0 ? 'disabled' : ''}>−</button>
+        <input type="number" id="qty_${p.id}" value="0" min="0" max="${stock}" onchange="calcTotal()" ${stock <= 0 ? 'disabled' : ''}>
+        <button onclick="changeQty('qty_${p.id}', 1, ${stock})" ${stock <= 0 ? 'disabled' : ''}>+</button>
+      </div>
+    </div>`;
+  }
+  
   document.getElementById("productList").innerHTML = html;
 }
 
@@ -212,21 +187,16 @@ function changeQty(inputId, delta, maxStock) {
 function calcTotal() {
   let total = 0;
   let weight = 0;
-  products.forEach((p, idx) => {
-    if (p.isFixed) {
-      let qty = parseInt(document.getElementById(`qty_${idx}`)?.value) || 0;
-      total += qty * p.price;
-      if (p.name.includes("肉松")) weight += qty * 0.2;
-      else if (p.name.includes("虾米卷")) weight += qty * 0.22;
-      else if (p.name.includes("鸡蛋饼")) weight += qty * 0.34;
-      else weight += qty * 0.1;
-    } else {
-      let qty500 = parseInt(document.getElementById(`qty_${idx}_500`)?.value) || 0;
-      let qty1kg = parseInt(document.getElementById(`qty_${idx}_1kg`)?.value) || 0;
-      total += qty500 * p.price500 + qty1kg * p.price1kg;
-      weight += qty500 * 0.5 + qty1kg * 1;
-    }
-  });
+  for (let p of products) {
+    let qty = parseInt(document.getElementById(`qty_${p.id}`)?.value) || 0;
+    total += qty * p.price;
+    if (p.spec === "500G") weight += qty * 0.5;
+    else if (p.spec === "1KG") weight += qty * 1;
+    else if (p.name.includes("肉松")) weight += qty * 0.2;
+    else if (p.name.includes("虾米卷")) weight += qty * 0.22;
+    else if (p.name.includes("鸡蛋饼")) weight += qty * 0.34;
+    else if (p.name.includes("鱼皮")) weight += qty * 0.1;
+  }
   let ship = 0;
   if (document.getElementById("delivery").value === "邮寄") {
     if (weight <= 1) ship = 10;
@@ -239,12 +209,6 @@ function calcTotal() {
   document.getElementById("total").innerText = (total + ship).toFixed(2);
 }
 
-async function refreshAllStock() {
-  document.getElementById("productList").innerHTML = "加载中...";
-  useMock = false;
-  await loadAllStocks();
-}
-
 async function submitOrder() {
   let name = document.getElementById("name").value.trim();
   let phone = document.getElementById("phone").value.trim();
@@ -254,20 +218,14 @@ async function submitOrder() {
   
   let file = document.getElementById("payment").files[0];
   if (!file) { alert("请上传付款截图"); return; }
-  if (file.size > 2*1024*1024) { alert("图片不能超过2MB"); return; }
   
   let orderProducts = [];
-  products.forEach((p, idx) => {
-    if (p.isFixed) {
-      let qty = parseInt(document.getElementById(`qty_${idx}`)?.value) || 0;
-      if (qty > 0) orderProducts.push({ name: p.name + " (" + p.unit + ")", qty: qty, price: p.price });
-    } else {
-      let qty500 = parseInt(document.getElementById(`qty_${idx}_500`)?.value) || 0;
-      let qty1kg = parseInt(document.getElementById(`qty_${idx}_1kg`)?.value) || 0;
-      if (qty500 > 0) orderProducts.push({ name: p.name + " 500G", qty: qty500, price: p.price500 });
-      if (qty1kg > 0) orderProducts.push({ name: p.name + " 1KG", qty: qty1kg, price: p.price1kg });
+  for (let p of products) {
+    let qty = parseInt(document.getElementById(`qty_${p.id}`)?.value) || 0;
+    if (qty > 0) {
+      orderProducts.push({ id: p.id, name: p.name + " " + p.spec, qty: qty, price: p.price });
     }
-  });
+  }
   if (orderProducts.length === 0) { alert("请选择商品"); return; }
   
   let btn = document.getElementById("submitBtn");
@@ -278,7 +236,7 @@ async function submitOrder() {
   reader.onload = async function(evt) {
     try {
       let payload = {
-        name: name, phone: phone, address: address,
+        name, phone, address,
         delivery: document.getElementById("delivery").value,
         remark: document.getElementById("remark").value,
         products: orderProducts,
