@@ -6,13 +6,13 @@
 <title>福满家订单系统</title>
 <style>
   * { box-sizing: border-box; font-family: system-ui, sans-serif; }
-  body { background: #fef7e8; margin: 0; padding: 20px; }
-  .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 28px; padding: 20px 24px 32px; border: 1px solid #ffddb0; }
-  h2 { text-align: center; color: #b33c1c; margin: 0 0 8px; }
+  body { background: #FCFBFF; margin: 0; padding: 20px; }
+  .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 28px; padding: 20px 24px 32px; border: 1px solid #E5DBFF; }
+  h2 { text-align: center; color: #6F52E5; margin: 0 0 8px; }
   .sub { text-align: center; color: #a16241; font-size: 13px; border-bottom: 1px solid #f3dec8; padding-bottom: 12px; margin-bottom: 20px; }
-  h3 { background: #fff0e4; padding: 10px 12px; border-radius: 24px; color: #8b3c1c; margin: 20px 0 12px; }
+  h3 { background: #F4EEFF; padding: 10px 12px; border-radius: 24px; color: #6F52E5; margin: 20px 0 12px; }
   label { font-weight: 600; color: #5a3e2e; display: block; margin: 12px 0 4px; }
-  input, select { width: 100%; padding: 12px 14px; border: 1px solid #ffd9b5; border-radius: 20px; background: #fffef9; }
+  input, select { width: 100%; padding: 12px 14px; border: 1px solid #D8C9FF; border-radius: 20px; background: #FFFFFF; }
   .product-card { background: #fff; border-radius: 24px; padding: 12px 14px; border: 1px solid #ffe3cc; margin-bottom: 16px; }
   .product-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
   .product-name { font-weight: 700; color: #5a3e2e; }
@@ -20,16 +20,16 @@
   .stock-display.high { background: #e8f5e9; color: #2e7d32; }
   .stock-display.low { background: #fff3e0; color: #ef6c00; }
   .stock-display.out { background: #ffcdd2; color: #b71c1c; }
-  .qty-group { display: flex; align-items: center; gap: 8px; background: #f9f5ef; padding: 6px 12px; border-radius: 40px; margin-top: 8px; }
-  .qty-group button { width: 32px; background: #e9ddd0; border: none; border-radius: 30px; font-size: 18px; cursor: pointer; }
+  .qty-group { display: flex; align-items: center; gap: 8px; background: #F8F5FF; padding: 6px 12px; border-radius: 40px; margin-top: 8px; }
+  .qty-group button { width: 32px; background: #E7DDFF; border: none; border-radius: 30px; font-size: 18px; cursor: pointer; }
   .qty-group button:disabled { opacity: 0.5; cursor: not-allowed; }
   .qty-group input { width: 70px; text-align: center; padding: 6px; border-radius: 30px; border: 1px solid #ffd9b5; }
-  .total { background: #fff3e6; padding: 16px; border-radius: 28px; margin: 20px 0; }
+  .total { background: #F8F5FF; padding: 16px; border-radius: 28px; margin: 20px 0; }
   .total-item { display: flex; justify-content: space-between; margin: 10px 0; }
-  button.submit-btn { width: 100%; padding: 14px; background: #b33c1c; color: white; border: none; font-size: 18px; font-weight: bold; border-radius: 40px; cursor: pointer; }
+  button.submit-btn { width: 100%; padding: 14px; background: liner-gradient(135deg,#9B7DFF,#7352F6); color: white; border: none; font-size: 18px; font-weight: bold; border-radius: 40px; cursor: pointer; }
   .refresh-stock { float: right; font-size: 12px; background: #e9ddd0; padding: 4px 12px; border-radius: 20px; cursor: pointer; }
   .error-banner { background: #ffebee; color: #c62828; padding: 10px; border-radius: 20px; margin-bottom: 20px; text-align: center; display: none; }
-  .required-star { color: #d9534f; }
+  .required-star { color: #9B7DFF; }
   .address-note { font-size: 12px; color: #a16241; margin-top: -4px; margin-bottom: 8px; }
   .loading-spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 8px; }
   @keyframes spin { to { transform: rotate(360deg); } }
