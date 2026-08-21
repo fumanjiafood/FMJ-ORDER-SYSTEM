@@ -6556,435 +6556,333 @@ function getOrderRemark() {
 }
 
 // ============================================================
-
 // 提交订单
-
 // ============================================================
 
 async function submitOrder() {
 
   const name =
-
-    document.getElementById(
-
-      "name"
-
-    ).value.trim();
+    document.getElementById("name")
+      .value
+      .trim();
 
   const phone =
-
-    document.getElementById(
-
-      "phone"
-
-    ).value.trim();
+    document.getElementById("phone")
+      .value
+      .trim();
 
   const delivery =
-
-    document.getElementById(
-
-      "delivery"
-
-    ).value;
+    document.getElementById("delivery")
+      .value;
 
   const address =
+    document.getElementById("address")
+      .value
+      .trim();
 
-    document.getElementById(
-
-      "address"
-
-    ).value.trim();
-
+  // 这里是你的付款截图 input
   const paymentInput =
+    document.getElementById("payment");
 
-    document.getElementById(
-
-      "paymentImage"
-
-    );
 
   // ==========================================================
-
   // 检查顾客资料
-
   // ==========================================================
 
-  if (
-
-    !name
-
-  ) {
-
-    alert(
-
-      "请填写姓名"
-
-    );
-
+  if (!name) {
+    alert("请填写姓名");
     return;
-
   }
 
-  if (
-
-    !phone
-
-  ) {
-
-    alert(
-
-      "请填写联络号码"
-
-    );
-
+  if (!phone) {
+    alert("请填写联络号码");
     return;
-
   }
 
-  if (
-
-    !delivery
-
-  ) {
-
-    alert(
-
-      "请选择配送方式"
-
-    );
-
+  if (!delivery) {
+    alert("请选择配送方式");
     return;
-
   }
 
-  if (
-
-    !address
-
-  ) {
-
-    alert(
-
-      "请填写地址"
-
-    );
-
+  if (!address) {
+    alert("请填写地址");
     return;
-
   }
+
 
   // ==========================================================
-
   // 检查商品
-
   // ==========================================================
 
-  if (
-
-    !hasSelectedProducts()
-
-  ) {
-
-    alert(
-
-      "请选择至少一件商品"
-
-    );
-
+  if (!hasSelectedProducts()) {
+    alert("请选择至少一件商品");
     return;
-
   }
 
+
   // ==========================================================
-
   // 检查自选礼盒数量
-
   // ==========================================================
 
   const mixedValidation =
-
     validateMixedBoxes();
 
-  if (
-
-    !mixedValidation.success
-
-  ) {
-
-    alert(
-
-      mixedValidation.message
-
-    );
-
+  if (!mixedValidation.success) {
+    alert(mixedValidation.message);
     return;
-
   }
 
-  // ==========================================================
 
+  // ==========================================================
   // 检查付款截图
-
   // ==========================================================
 
   if (
-
+    !paymentInput ||
     !paymentInput.files ||
-
     paymentInput.files.length === 0
-
   ) {
 
-    alert(
-
-      "请上传付款截图"
-
-    );
-
+    alert("请上传付款截图");
     return;
 
   }
 
+
   // ==========================================================
-
   // 检查库存
-
   // ==========================================================
 
   const stockValidation =
-
     validateStock();
 
-  if (
+  if (!stockValidation.success) {
 
-    !stockValidation.success
-
-  ) {
-
-    alert(
-
-      stockValidation.message
-
-    );
-
+    alert(stockValidation.message);
     return;
 
   }
 
+
+  // ==========================================================
+  // 获取提交按钮
+  // ==========================================================
+
   const submitBtn =
+    document.getElementById("submitBtn");
 
-    document.getElementById(
+  if (!submitBtn) {
 
-      "submitBtn"
+    alert("找不到提交订单按钮");
+    return;
 
-    );
+  }
 
-  submitBtn.disabled =
-
-    true;
 
   const originalText =
-
     submitBtn.textContent;
 
-  submitBtn.textContent =
+  submitBtn.disabled =
+    true;
 
+  submitBtn.textContent =
     "订单提交中...";
+
 
   try {
 
     // ========================================================
-
-    // 再次计算金额
-
+    // 计算金额
     // ========================================================
 
     const productTotal =
-
       getProductTotal();
 
     const shippingFee =
-
       getShippingFee();
 
     const total =
-
       productTotal +
-
       shippingFee;
 
+
     // ========================================================
-
-    // 付款截图
-
+    // 读取付款截图
     // ========================================================
 
     const paymentImage =
-
       await getPaymentImageBase64();
 
+
     // ========================================================
-
-    // 商品库存资料
-
+    // 建立商品资料
     // ========================================================
 
     const products =
-
       buildOrderProducts();
 
-    // ========================================================
-
-    // 提交资料
 
     // ========================================================
-
-    const orderData =
-
-      {
-
-        name:
-
-          name,
-
-        phone:
-
-          phone,
-
-        address:
-
-          address,
-
-        delivery:
-
-          delivery === "pickup"
-
-            ? "自取 Pickup"
-
-            : "邮寄 Shipping",
-
-        products:
-
-          products,
-
-        productTotal:
-
-          productTotal,
-
-        shippingFee:
-
-          shippingFee,
-
-        total:
-
-          total,
-
-        paymentImage:
-
-          paymentImage,
-
-        remark:
-
-          getOrderRemark()
-
-      };
-
+    // 建立订单资料
     // ========================================================
 
-    // POST 到 Google Apps Script
+    const orderData = {
 
+      name:
+        name,
+
+      phone:
+        phone,
+
+      address:
+        address,
+
+      delivery:
+        delivery === "pickup"
+          ? "自取 Pickup"
+          : "邮寄 Shipping",
+
+      products:
+        products,
+
+      productTotal:
+        Number(productTotal),
+
+      shippingFee:
+        Number(shippingFee),
+
+      total:
+        Number(total),
+
+      paymentImage:
+        paymentImage,
+
+      remark:
+        getOrderRemark()
+
+    };
+
+
+    console.log(
+      "提交订单资料：",
+      orderData
+    );
+
+
+    // ========================================================
+    // 提交 Google Apps Script
     // ========================================================
 
     const response =
-
       await fetch(
-
         API_URL,
-
         {
+          method: "POST",
 
-          method:
-
-            "POST",
+          headers: {
+            "Content-Type":
+              "text/plain;charset=utf-8"
+          },
 
           body:
+            JSON.stringify(orderData),
 
-            JSON.stringify(
-
-              orderData
-
-            )
-
+          redirect:
+            "follow"
         }
-
       );
 
-    const result =
 
-      await response.json();
+    // ========================================================
+    // 读取 Google Apps Script 返回资料
+    // ========================================================
+
+    const responseText =
+      await response.text();
+
+    console.log(
+      "Google Apps Script 返回：",
+      responseText
+    );
+
+
+    let result;
+
+    try {
+
+      result =
+        JSON.parse(responseText);
+
+    } catch (parseError) {
+
+      throw new Error(
+        "Google Apps Script 没有返回正确资料。请确认 Apps Script 已正确部署。"
+      );
+
+    }
+
+
+    // ========================================================
+    // 成功
+    // ========================================================
 
     if (
-
-      result.status ===
-
-      "success"
-
+      result.status === "success"
     ) {
 
       alert(
-
-        `订单提交成功！\n\n订单编号：${result.orderId}`
-
+        "订单提交成功！\n\n" +
+        "订单编号：" +
+        result.orderId
       );
 
+
+      // 重新加载页面
       location.reload();
 
       return;
 
     }
 
+
+    // ========================================================
+    // Google Apps Script 返回错误
+    // ========================================================
+
     throw new Error(
-
       result.message ||
-
       "订单提交失败"
-
     );
 
-  } catch (
 
-    error
-
-  ) {
+  } catch (error) {
 
     console.error(
-
+      "订单提交错误：",
       error
-
     );
+
 
     alert(
-
-      "订单提交失败：" +
-
-      error.message
-
+      "订单提交失败：\n\n" +
+      (
+        error.message ||
+        "请稍后再试"
+      )
     );
+
 
   } finally {
 
     submitBtn.disabled =
-
       false;
 
     submitBtn.textContent =
-
       originalText;
 
   }
 
 }
-
 // ============================================================
 
 // 页面启动时显示初始金额
