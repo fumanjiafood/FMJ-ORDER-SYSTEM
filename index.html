@@ -1201,97 +1201,125 @@ button:disabled {
 
     >
 
-      第四步｜付款资料
+<!-- ============================================================
 
-    </h2>
+付款资料
 
-    <div
+============================================================ -->
 
-      class="payment-card"
+<h3>💳 付款资料</h3>
 
-    >
+<div class="payment-info">
 
-      <div
+  <!-- DuitNow QR -->
 
-        class="payment-title"
+  <div class="payment-card">
 
-      >
+    <div class="payment-title">
 
-        请完成付款后上传付款截图
-
-      </div>
-
-      <a
-
-        class="payment-link"
-
-        href=" "
-
-        target="_blank"
-
-      >
-
-        查看 DuitNow 付款资料
-
-      </a >
-
-      <a
-
-        class="payment-link"
-
-        href="https://drive.google.com/file/d/1drD41ohPC6rpxXxdwMHAg1l8s9dT5CF_/view?usp=sharing"
-
-        target="_blank"
-
-      >
-
-        查看 Bank 付款资料
-
-      </a >
-
-      <div
-
-        class="payment-upload"
-
-      >
-
-        <label
-
-          class="form-label"
-
-          for="paymentImage"
-
-        >
-
-          上传付款截图
-
-          <span
-
-            class="required"
-
-          >
-
-            *
-
-          </span>
-
-        </label>
-
-        <input
-
-          id="paymentImage"
-
-          type="file"
-
-          accept="image/*"
-
-        >
-
-      </div>
+      DuitNow QR
 
     </div>
 
-  </section>
+    <img
+
+      src="https://drive.google.com/uc?export=view&id=1fDZ__vuAM_BFGo8dzmNStC7d6w9u2XsK"
+
+      class="payment-qr"
+
+      alt="DuitNow QR Code"
+
+    >
+
+    <div class="payment-note">
+
+      请扫描 QR Code 进行付款
+
+    </div>
+
+  </div>
+
+  <!-- 银行户口 -->
+
+  <div class="payment-card">
+
+    <div class="payment-title">
+
+      Bank Transfer
+
+    </div>
+
+    <img
+
+      src="https://drive.google.com/uc?export=view&id=1drD41ohPC6rpxXxdwMHAg1l8s9dT5CF_"
+
+      class="payment-bank"
+
+      alt="Bank Account"
+
+    >
+
+    <div class="payment-note">
+
+      请使用以上银行户口资料进行付款
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ============================================================
+
+备注
+
+============================================================ -->
+
+<h3>📝 备注</h3>
+
+<input
+
+  id="remark"
+
+  placeholder="特殊要求或备注（可不填写）"
+
+>
+
+<!-- ============================================================
+
+上传付款截图
+
+============================================================ -->
+
+<h3>
+
+  🖼️ 上传付款截图
+
+  <span class="required-star">*</span>
+
+</h3>
+
+<div class="payment-upload">
+
+  <div class="upload-note">
+
+    请完成付款后，上传付款截图
+
+  </div>
+
+  <input
+
+    type="file"
+
+    id="payment"
+
+    accept="image/*"
+
+    required
+
+  >
+
+</div>
 
   <!-- =========================
 
